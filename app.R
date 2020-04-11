@@ -249,7 +249,7 @@ ui <- fluidPage(
   tags$head(tags$script(HTML(JS.logify))),
   tags$head(tags$script(HTML(JS.onload))),
   # Application title
-  titlePanel("Viz-Covid-19 Dashboard:  Confirmed Cases, Deaths, Recovered"),
+  titlePanel("vizCovid Dashboard:  Confirmed Cases, Deaths, Recovered"),
   tags$head(includeHTML(("google-analytics.html"))),
   tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
   tags$a(href="#about", "about"),
@@ -353,15 +353,19 @@ ui <- fluidPage(
            tags$img(src='http://nbcgib.uesc.br/ppgmc/imagens/logotopo.png',height='80')),
     
     h4("Data Sources"),
-    p("Countries:"),
+    h5("Countries:"),
     tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data", 
            "CSSE COVID-19 Dataset - Johns Hopkins University"),
-    p("Brazilian States data:"),
+    h5("Brazilian States data:"),
     tags$a(href="https://covid.saude.gov.br/", 
            "Ministério da Saúde (Brasil)"),
-    p("Brazilian Cities data:"),
+    h5("Brazilian Cities data:"),
     tags$a(href="https://brasil.io/", 
-           "Brasil.io")
+           "Brasil.io"),
+    h4("Source:"),
+    tags$a(href="https://github.com/robertodepinho/vizCovidDashboard", 
+           "github"),
+    
     
     )
 )
