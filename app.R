@@ -319,18 +319,18 @@ ui <- fluidPage(
            h5("Select Countries or Regions below to add them above:"),
            selectInput("countries.ctrl.sel", label = h3("Countries"), 
                        choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.C"])), 
-                       selected = " "),
+                       selected = " ", multiple = TRUE),
            
            selectInput("brauf.ctrl.sel", label = h3("Brazil: States"), 
                        choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "BRA.UF"])), 
-                       selected = " "),
+                       selected = " ", multiple = TRUE),
            
            selectInput("bract.ctrl.sel", label = h3("Brazil: Cities"), 
                        choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "IO.CT"])), 
-                       selected = " "),
+                       selected = " ", multiple = TRUE),
            selectInput("regions.ctrl.sel", label = h3("World Provinces/States"), 
                        choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.R"])), 
-                       selected = " ")
+                       selected = " ", multiple = TRUE)
            
            
     )), 
