@@ -119,9 +119,11 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
   tsCShiftList = tsCShift[ tsCShift$Country.Region %in% countryList,]
   
+  tsCShiftList = tsCShiftList[ order(tsCShiftList$Country.Region, tsCShiftList$diffDate),]
   
   serie_2 = data.frame( x = rep(tsCShiftList$diffDate,nPaises) , y = rep(tsCShiftList$selVarValue,nPaises), 
                         cnt = rep(tsCShiftList$Country.Region,nPaises), Country.Region = rep(unique(countryList),nrow(tsCShiftList)))
+  
   
   serie_label = data.frame(x = rep(labelSubset$diffDate, nPaises),
                            y = rep(labelSubset$selVarValue, nPaises), 
@@ -152,7 +154,7 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
 }
 
 
-covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl) {
+covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -195,11 +197,15 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   } 
   
   
-  covidColorPlot = covidColorPlot  +   
-    geom_line(size = 2, data = tsCShift[tsCShift$Country.Region %in%  highlightCountry,], 
-              aes(x=diffDate, y=selVarValue, colour = Country.Region),
-              show.legend = FALSE) +
+  if(high.ctrl !="None") {
+    covidColorPlot = covidColorPlot  +   
+      geom_line(size = 2, data = tsCShift[tsCShift$Country.Region %in%  high.ctrl,], 
+                aes(x=diffDate, y=selVarValue, colour = Country.Region),
+                show.legend = FALSE) 
     
+  }
+  
+  covidColorPlot = covidColorPlot  +
     geom_text_repel(data = labelSubset, aes(label = Country.Region)) +
     scale_color_discrete() +
     scale_x_continuous(name=paste("Days from first day with", anchorCases," or more", selVar, sep=" ") ) +
@@ -234,7 +240,6 @@ tsCAgg$cnt.Code = countrycode(sourcevar = tsCAgg$Country.Region, origin = "count
 
 
 countryList = c("Brazil", "Italy", "Japan", "Korea, South", "France")
-highlightCountry = "Brazil"
 
 
 countryChoices = getCountryChoices(tsCAgg)
@@ -303,15 +308,19 @@ ui <- fluidPage(
                        choices = c("None",as.character(countryChoices$Country.Region[countryChoices$Group %in% "EST"])),
                        selected = as.character(countryChoices$Country.Region[countryChoices$Group %in% "EST"])[3]
            ),
+           selectInput("high.ctrl", "Highlight Country/Region",
+                       choices = c("None",countryList),
+                       selected = "Brazil"
+           ),
            checkboxGroupInput("mark.ctrl", 
                               "Marker/Line Options", choices = c("Marker", "Line", "Line Style" , "Color", "Background Lines"),selected = c("Line", "Color"),
                               inline = TRUE)
-          
+           
            
     ),
     column(6,
            
-          
+           
            checkboxGroupInput("CR.ctrl", label = h3("Selected Country/Regions"), inline = TRUE,
                               choices = countryList,
                               selected = countryList),
@@ -367,7 +376,7 @@ ui <- fluidPage(
            "github"),
     
     
-    )
+  )
 )
 
 
@@ -393,6 +402,8 @@ server <- function(input, output, session) {
       if(!identical(session$userData$antGroup, changeGroup)) {
         session$userData$antGroup = changeGroup
         updateCheckboxGroupInput(session, "CR.ctrl", choices = TTTGroup, selected = TTTGroup, inline = TRUE)
+        if(input$high.ctrl %in% TTTGroup) { highSel = input$high.ctrl} else { highSel = "None"}
+        updateSelectInput(session, "high.ctrl", choices = c("None", TTTGroup), selected = highSel)      
       }
       return()
     } )
@@ -456,7 +467,7 @@ server <- function(input, output, session) {
     
     if(input$style == 1) {
       covidColor(input$var_ctrl,tsCAgg,listP, input$anchor, 
-                 input$days, casesValue, input$logscale, countryList, input$mark.ctrl)
+                 input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl)
     } else {
       covidBlue(input$var_ctrl,tsCAgg,listP, input$anchor, 
                 input$days, casesValue, input$logscale, countryList)

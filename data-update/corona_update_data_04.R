@@ -35,15 +35,15 @@ downloadMSCSV <- function(fileName){
   
 
   UFData = read.delim(fileName, header = T, sep = ";", fileEncoding="latin1")
-  UFData$Date = as.Date(as.character(UFData$date), format = "%d/%m/%Y") #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
-  UFData$Country.Region = UFData$sigla
-  UFData$Confirmed = UFData$cases
-  UFData$Deaths = UFData$deaths
+  UFData$Date = as.Date(as.character(UFData$data), format = "%d/%m/%Y") #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
+  UFData$Country.Region = UFData$estado
+  UFData$Confirmed = UFData$casosAcumulados
+  UFData$Deaths = UFData$obitosAcumulados
   UFData$Recovered = NA
   UFData$Active = NA
   UFData$Group =  "BRA.UF"
   
-  #tail(UFData[UFData$sigla %in% "BA" ,])
+  tail(UFData[UFData$Country.Region %in% "BA" ,])
   ufCAgg = UFData[, c("Date", "Country.Region", "Confirmed", "Deaths", "Recovered", 
                       "Active", "Group")]
   ufCAgg$Country.Region = paste("BRA:", ufCAgg$Country.Region, sep = "")
@@ -262,13 +262,13 @@ timeStamp = format(Sys.time(),"%Y%m%d_%H%M%S")
 downloadJHU()
 
 tsCAgg = prepareData()
-#tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
+tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 #last Day
-x = data.frame(Date = as.Date("2020-04-10"),
+x = data.frame(Date = as.Date("2020-04-12"),
                Country.Region = "Brazil", 
-               Confirmed = 19638, #Boletim MS
-               Deaths = 1056,
+               Confirmed = 22162, #Boletim MS
+               Deaths = 1223,
                Recovered = NA,
                Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
 tsCAgg = rbind(tsCAgg, x)
@@ -278,7 +278,7 @@ tsCAgg = prepareDataJHU.Regions(tsCAgg)
 #tsCAgg[tsCAgg$Country.Region %in% "CN:Hubei", ]
 
 
-tsCAgg = downloadMSCSV("~/Downloads/4101ebf78c503bf35ecba5545d236c76_Download_COVID19_20200410.csv")
+tsCAgg = downloadMSCSV("~/Downloads/884e4edb6c3f1cda0fbc930dbed29050_Download_COVID19_20200412.csv")
 #tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ]
 
 
@@ -288,10 +288,10 @@ tsCAgg = downloadBrasil.io()
 tsCAgg = estSeries()
 tsCAgg = newCasesDeaths()
 
-# tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
-# tail(tsCAgg[tsCAgg$Country.Region %in% "CN:Hubei", ])
-# tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:Brasil", ])
-# tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
+ tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
+ tail(tsCAgg[tsCAgg$Country.Region %in% "AU:New South Wales", ])
+ tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:Brasil", ])
+ tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
 
 save(tsCAgg, timeStamp, file= "../tsCAgg.RData")
 

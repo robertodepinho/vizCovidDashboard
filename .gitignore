@@ -4,3 +4,7 @@
 .Ruserdata
 google-analytics.html
 data-update/csv_how
+data-update/time_series_19-covid-Confirmed_last.csv
+data-update/time_series_19-covid-Deaths_last.csv
+data-update/time_series_19-covid-Recovered_last.csv
+
