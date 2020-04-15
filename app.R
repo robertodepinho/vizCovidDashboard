@@ -11,6 +11,8 @@ library(scales)
 library(countrycode)
 library(shiny)
 
+source("./est/estima.R")
+
 # logifySlider javascript function
 JS.logify <-
   "
@@ -154,7 +156,7 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
 }
 
 
-covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl) {
+covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -195,6 +197,14 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
                                                  aes(x=diffDate, y=selVarValue), colour = "grey90",
                                                  show.legend = FALSE, ) 
   } 
+  
+  b = b = 2^ (1/doublingTime)
+  if(logScale){
+    fun.l <- function(x) {log(anchorCases * b^(x), 10)}
+  } else {  
+    fun.l <- function(x) {anchorCases * b^(x)}
+  }
+  covidColorPlot = covidColorPlot  + stat_function(fun = fun.l, colour = "green")
   
   
   if(high.ctrl !="None") {
@@ -264,7 +274,6 @@ ui <- fluidPage(
   hr(),
   
   
-  
   fluidRow(
     column(3,
            radioButtons("var_ctrl", "Variable",
@@ -304,14 +313,16 @@ ui <- fluidPage(
            
            radioButtons("style", "Chart Style",
                         choices = list("Single Chart (Colors)" = 1, "One Chart per Country (Blue)" = 2),selected = 1),
-           selectInput("est.ctrl", "Trend Line",
-                       choices = c("None",as.character(countryChoices$Country.Region[countryChoices$Group %in% "EST"])),
-                       selected = as.character(countryChoices$Country.Region[countryChoices$Group %in% "EST"])[3]
+           selectInput("est.ctrl", "Trend Line - Doubling Time (days)",
+                       choices = c("None","EST:Doubling Time (mean)", "3", "4", "7"),
+                       selected = "None"
            ),
            selectInput("high.ctrl", "Highlight Country/Region",
                        choices = c("None",countryList),
                        selected = "Brazil"
            ),
+           htmlOutput("doublingTime"),
+           br(),
            checkboxGroupInput("mark.ctrl", 
                               "Marker/Line Options", choices = c("Marker", "Line", "Line Style" , "Color", "Background Lines"),selected = c("Line", "Color"),
                               inline = TRUE)
@@ -349,7 +360,9 @@ ui <- fluidPage(
     h4("Chart developed by:"),
     tags$a(id = "about"),
     tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
+    br(),
     p("Last updated:", timeStamp),
+    br(),
     h4("This visualization is being generously hosted by:"),
     tags$a(href="http://nbcgib.uesc.br/nbcgib/",
            "NBCGIB/CCAM/PPGMC/UESC"),
@@ -360,7 +373,7 @@ ui <- fluidPage(
     h5("Bahia, Brazil."),
     tags$a(href='http://nbcgib.uesc.br/ppgmc/',
            tags$img(src='http://nbcgib.uesc.br/ppgmc/imagens/logotopo.png',height='80')),
-    
+    br(),
     h4("Data Sources"),
     h5("Countries:"),
     tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data", 
@@ -371,6 +384,12 @@ ui <- fluidPage(
     h5("Brazilian Cities data:"),
     tags$a(href="https://brasil.io/", 
            "Brasil.io"),
+    br(),
+    tags$a(id = "double"),
+    h4("Doubling time estimate model:"),
+    tags$a(href="https://github.com/covid19br/covid19br.github.io", 
+           "Observatório COVID-19 BR"),
+    p("Showing mean of last 15 days"),
     h4("Source:"),
     tags$a(href="https://github.com/robertodepinho/vizCovidDashboard", 
            "github"),
@@ -385,7 +404,8 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
-  load("tsCAgg.RData")
+  #load("tsCAgg.RData")
+  
   
   
   output$covidPlot <- renderPlot({
@@ -438,6 +458,25 @@ server <- function(input, output, session) {
       
     }
     
+    if(input$high.ctrl != "None" & input$est.ctrl != "EST:Doubling Time (mean)") {
+      doublingTime = as.numeric(input$est.ctrl)
+    } 
+    
+    if(input$high.ctrl != "None"  & input$est.ctrl == "EST:Doubling Time (mean)") {
+      doublingTime = mean(tail(getDoublingTime(input$high.ctrl, tsCAgg)$estimativa,15), na.rm=T)
+      output$doublingTime <- renderText(
+        paste("Mean Doubling time: ", 
+              format(round(as.numeric(doublingTime), 1)), " days",tags$a(href="#double", "*") ,sep=""))
+      
+      
+      # b = 2^ (1/doublingTime)
+      # x = estSerieApp(b, log(10^6, b), "EST:Doubling Time (mean)")
+      # tsCAgg = tsCAgg[!tsCAgg$Country.Region %in% "EST:Doubling Time (mean)",]
+      # tsCAgg = rbind(tsCAgg, x)
+    } else  {output$doublingTime <- renderText("")}
+    
+    
+    
     countryList = unique(c(input$CR.ctrl, input$est.ctrl))
     
     #prepare data
@@ -454,6 +493,10 @@ server <- function(input, output, session) {
     #adjust max
     tsCShift = listP[[2]]
     
+    
+    
+    
+    
     nonEst = (substr(tsCShift$Country.Region, 1, 4) == "EST:")
     
     maxCases = max(tsCShift$selVarValue[!nonEst & tsCShift$Country.Region %in% countryList], na.rm=T) + 100
@@ -467,7 +510,7 @@ server <- function(input, output, session) {
     
     if(input$style == 1) {
       covidColor(input$var_ctrl,tsCAgg,listP, input$anchor, 
-                 input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl)
+                 input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime)
     } else {
       covidBlue(input$var_ctrl,tsCAgg,listP, input$anchor, 
                 input$days, casesValue, input$logscale, countryList)

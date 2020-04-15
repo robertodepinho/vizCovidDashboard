@@ -35,7 +35,7 @@ downloadMSCSV <- function(fileName){
   
 
   UFData = read.delim(fileName, header = T, sep = ";", fileEncoding="latin1")
-  UFData$Date = as.Date(as.character(UFData$data), format = "%d/%m/%Y") #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
+  UFData$Date =as.Date(as.character(UFData$data), format = "%Y-%m-%d") #as.Date(as.character(UFData$data), format = "%d/%m/%Y") #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
   UFData$Country.Region = UFData$estado
   UFData$Confirmed = UFData$casosAcumulados
   UFData$Deaths = UFData$obitosAcumulados
@@ -209,14 +209,17 @@ estSeries <- function() {
   countDays = aggregate(Date~Country.Region, tsCAgg, length )
   maxDays = max(countDays$Date) + 1
   
-  b = 2
-  x = estSerie(b, 30, "EST:Double Every Day")
-  tsCAgg = rbind(tsCAgg, x)
-  b = sqrt(2)
-  x = estSerie(b, maxDays, "EST:Double Every 2 Days")
-  tsCAgg = rbind(tsCAgg, x)
+  # b = 2
+  # x = estSerie(b, 30, "EST:Double Every Day")
+  # tsCAgg = rbind(tsCAgg, x)
+  # b = sqrt(2)
+  # x = estSerie(b, maxDays, "EST:Double Every 2 Days")
+  # tsCAgg = rbind(tsCAgg, x)
   b = 2^ (1/3)
   x = estSerie(b, maxDays, "EST:Double Every 3 Days")
+  tsCAgg = rbind(tsCAgg, x)
+  b = 2^ (1/4)
+  x = estSerie(b, maxDays, "EST:Double Every 4 Days")
   tsCAgg = rbind(tsCAgg, x)
   b = 2^ (1/7)
   x = estSerie(b, maxDays+100, "EST:Double Every Week")
@@ -257,6 +260,7 @@ newCasesDeaths <- function() {
 # pt_BR
 # cidades filtro por UF
 # US States / Cities
+# use selectizeInput? 
 
 timeStamp = format(Sys.time(),"%Y%m%d_%H%M%S")
 downloadJHU()
@@ -265,27 +269,27 @@ tsCAgg = prepareData()
 tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 #last Day
-x = data.frame(Date = as.Date("2020-04-12"),
+x = data.frame(Date = as.Date("2020-04-14"),
                Country.Region = "Brazil", 
-               Confirmed = 22162, #Boletim MS
-               Deaths = 1223,
+               Confirmed = 25262, #Boletim MS
+               Deaths = 1532,
                Recovered = NA,
                Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
-tsCAgg = rbind(tsCAgg, x)
+#tsCAgg = rbind(tsCAgg, x)
 #tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
 #tsCAgg[tsCAgg$Country.Region %in% "CN:Hubei", ]
 
-
-tsCAgg = downloadMSCSV("~/Downloads/884e4edb6c3f1cda0fbc930dbed29050_Download_COVID19_20200412.csv")
-#tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ]
+fileName = "~/Downloads/b3805cd924bc7c4ca3907d45e0d6a670_Download_COVID19_20200414.csv"
+tsCAgg = downloadMSCSV(fileName)
+tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ]
 
 
 tsCAgg = downloadBrasil.io()
 
 
-tsCAgg = estSeries()
+#tsCAgg = estSeries()
 tsCAgg = newCasesDeaths()
 
  tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
