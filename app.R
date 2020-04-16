@@ -314,7 +314,7 @@ ui <- fluidPage(
            radioButtons("style", "Chart Style",
                         choices = list("Single Chart (Colors)" = 1, "One Chart per Country (Blue)" = 2),selected = 1),
            selectInput("est.ctrl", "Trend Line - Doubling Time (days)",
-                       choices = c("None","EST:Doubling Time (mean)", "3", "4", "7"),
+                       choices = c("None","EST:Doubling Time (median)", "3", "4", "7"),
                        selected = "None"
            ),
            selectInput("high.ctrl", "Highlight Country/Region",
@@ -389,7 +389,7 @@ ui <- fluidPage(
     h4("Doubling time estimate model:"),
     tags$a(href="https://github.com/covid19br/covid19br.github.io", 
            "Observatório COVID-19 BR"),
-    p("Showing mean of last 15 days"),
+    p("Showing median of last 15 days"),
     h4("Source:"),
     tags$a(href="https://github.com/robertodepinho/vizCovidDashboard", 
            "github"),
@@ -458,20 +458,20 @@ server <- function(input, output, session) {
       
     }
     
-    if(input$high.ctrl != "None" & input$est.ctrl != "EST:Doubling Time (mean)") {
+    if(input$high.ctrl != "None" & input$est.ctrl != "EST:Doubling Time (median)") {
       doublingTime = as.numeric(input$est.ctrl)
     } 
     
-    if(input$high.ctrl != "None"  & input$est.ctrl == "EST:Doubling Time (mean)") {
-      doublingTime = mean(tail(getDoublingTime(input$high.ctrl, tsCAgg)$estimativa,15), na.rm=T)
+    if(input$high.ctrl != "None"  & input$est.ctrl == "EST:Doubling Time (median)") {
+      doublingTime = median(tail(getDoublingTime(input$high.ctrl, tsCAgg, input$var_ctrl)$estimativa,15), na.rm=T)
       output$doublingTime <- renderText(
-        paste("Mean Doubling time: ", 
+        paste("Median Doubling time: ", 
               format(round(as.numeric(doublingTime), 1)), " days",tags$a(href="#double", "*") ,sep=""))
       
       
       # b = 2^ (1/doublingTime)
-      # x = estSerieApp(b, log(10^6, b), "EST:Doubling Time (mean)")
-      # tsCAgg = tsCAgg[!tsCAgg$Country.Region %in% "EST:Doubling Time (mean)",]
+      # x = estSerieApp(b, log(10^6, b), "EST:Doubling Time (median)")
+      # tsCAgg = tsCAgg[!tsCAgg$Country.Region %in% "EST:Doubling Time (median)",]
       # tsCAgg = rbind(tsCAgg, x)
     } else  {output$doublingTime <- renderText("")}
     

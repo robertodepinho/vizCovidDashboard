@@ -260,7 +260,8 @@ newCasesDeaths <- function() {
 # pt_BR
 # cidades filtro por UF
 # US States / Cities
-# use selectizeInput? 
+# use selectizeInput?
+# R0
 
 timeStamp = format(Sys.time(),"%Y%m%d_%H%M%S")
 downloadJHU()
@@ -269,19 +270,19 @@ tsCAgg = prepareData()
 tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 #last Day
-x = data.frame(Date = as.Date("2020-04-14"),
+x = data.frame(Date = as.Date("2020-04-15"),
                Country.Region = "Brazil", 
-               Confirmed = 25262, #Boletim MS
-               Deaths = 1532,
+               Confirmed = 28320, #Boletim MS
+               Deaths = 1736,
                Recovered = NA,
                Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
-#tsCAgg = rbind(tsCAgg, x)
+tsCAgg = rbind(tsCAgg, x)
 #tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
 #tsCAgg[tsCAgg$Country.Region %in% "CN:Hubei", ]
 
-fileName = "~/Downloads/b3805cd924bc7c4ca3907d45e0d6a670_Download_COVID19_20200414.csv"
+fileName = "~/Downloads/e2c2725318b653d2863baf5357b71135_Download_COVID19_20200415.csv"
 tsCAgg = downloadMSCSV(fileName)
 tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ]
 

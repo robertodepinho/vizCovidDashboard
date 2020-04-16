@@ -7,20 +7,23 @@ library(zoo)
 ## Funcoes
 source("./est/funcoes.R")
 
-getDoublingTime <- function(highlightCountry, tsCAgg) {
+getDoublingTime <- function(highlightCountry, tsCAgg, selVar) {
+  
+  
+  selVar = gsub(" ", "", selVar)
   
   #serie de entrada
   # c("data", "novos.casos", "casos.acumulados", "obitos.novos", "obitos.acumulados")
   # data: "2020-01-30"
   #brasil.raw <- read.csv("./est/BrasilCov19.csv", as.is = TRUE)
-  serie.raw = tsCAgg[tsCAgg$Country.Region %in% highlightCountry, c("Date","NewCases", "Confirmed")]
+  serie.raw = tsCAgg[tsCAgg$Country.Region %in% highlightCountry, c("Date",selVar, selVar)]
   
   ## Cria objeto da classe zoo 
   serie <- zoo(serie.raw[, 2:3], serie.raw$Date) 
   
   ## Tira os casos acumulados iniciais abaixo de um mínimo
   minimo <- 15 ## pelo menos 15 casos
-  serie.d0 <- diazero(serie$Confirmed, limite = minimo)
+  serie.d0 <- diazero(serie[,selVar], limite = minimo)
   
   ## Executa o ajuste em running windows com a largura indicada
   ## Retorna o tempo de duplicacao a cada data final de cada running window
