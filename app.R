@@ -389,7 +389,7 @@ ui <- fluidPage(
     h4("Doubling time estimate model:"),
     tags$a(href="https://github.com/covid19br/covid19br.github.io", 
            "Observatório COVID-19 BR"),
-    p("Showing median of last 15 days"),
+    p("Showing median of last 15 days and median of their confidence intervals (level=0.95)."),
     h4("Source:"),
     tags$a(href="https://github.com/robertodepinho/vizCovidDashboard", 
            "github"),
@@ -463,10 +463,16 @@ server <- function(input, output, session) {
     } 
     
     if(input$high.ctrl != "None"  & input$est.ctrl == "EST:Doubling Time (median)") {
-      doublingTime = median(tail(getDoublingTime(input$high.ctrl, tsCAgg, input$var_ctrl)$estimativa,15), na.rm=T)
+      gDT = tail(getDoublingTime(input$high.ctrl, tsCAgg, input$var_ctrl),15)
+      doublingTime = median(gDT$estimativa, na.rm=T)
+      
       output$doublingTime <- renderText(
         paste("Median Doubling time: ", 
-              format(round(as.numeric(doublingTime), 1)), " days",tags$a(href="#double", "*") ,sep=""))
+              format(round(as.numeric(doublingTime), 1)), " days",
+              " (", format(round(as.numeric(median(gDT$ic.inf)), 1)), ",",
+              format(round(as.numeric(median(gDT$ic.sup)), 1)), ")",
+              
+              tags$a(href="#double", "*") ,sep=""))
       
       
       # b = 2^ (1/doublingTime)
