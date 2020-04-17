@@ -11,7 +11,9 @@ library(scales)
 library(countrycode)
 library(shiny)
 
+
 source("./est/estima.R")
+source("./src/chart.R")
 
 # logifySlider javascript function
 JS.logify <-
@@ -75,9 +77,11 @@ chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.
   tsCAgg = tsCAgg[ tsCAgg$Country.Region %in% anchorDate$Country.Region,]
   
   tsCShift = merge(tsCAgg, anchorDate, by = "Country.Region", all.x = T)
-  tsCShift$diffDate = tsCShift$Date - tsCShift$anchorDate
   
+  
+  tsCShift$diffDate = tsCShift$Date - tsCShift$anchorDate
   maxDays = max(as.numeric(tsCShift$diffDate), na.rm=T) + 1
+  
   
   if(logScale){
     scale_y =   scale_y_log10( labels =  label_dollar(prefix=""), name = paste(selVar, " (log)", sep=" "))
@@ -89,160 +93,35 @@ chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.
     scale_y = scale_y_continuous( labels =  label_dollar(prefix=""), name = paste(selVar, " ", sep=" "))
   }
   
-  labelSubset = tsCShift[ tsCShift$selVarValue <  ylimSup & 
-                            as.numeric(tsCShift$diffDate) <= xlimSup &
-                            tsCShift$Country.Region %in% countryList
-                          ,]
-  maxDiff = aggregate(diffDate ~Country.Region, labelSubset, max)
-  labelSubset = merge(labelSubset, maxDiff, by = "Country.Region")
-  labelSubset = labelSubset[ as.numeric(labelSubset$diffDate.x) == labelSubset$diffDate.y, ]
-  labelSubset$diffDate = labelSubset$diffDate.x
-  labelSubset$cnt.Code = countrycode(sourcevar = labelSubset$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
+  if(anchorCases>0) {
+    labelSubset = tsCShift[ tsCShift$selVarValue <  ylimSup & 
+                              as.numeric(tsCShift$diffDate) <= xlimSup &
+                              tsCShift$Country.Region %in% countryList
+                            ,]
+    maxDiff = aggregate(diffDate ~Country.Region, labelSubset, max)
+    labelSubset = merge(labelSubset, maxDiff, by = "Country.Region")
+    labelSubset = labelSubset[ as.numeric(labelSubset$diffDate.x) == labelSubset$diffDate.y, ]
+    labelSubset$diffDate = labelSubset$diffDate.x
+    labelSubset$cnt.Code = countrycode(sourcevar = labelSubset$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
+    
+  } else {
+    labelSubset = tsCShift[ tsCShift$selVarValue <  ylimSup & 
+                              
+                              tsCShift$Country.Region %in% countryList
+                            ,]
+    maxDate = aggregate(Date ~Country.Region, labelSubset, max)
+    labelSubset = merge(labelSubset, maxDate, by = "Country.Region")
+    labelSubset = labelSubset[ as.numeric(labelSubset$Date.x) == labelSubset$Date.y, ]
+    labelSubset$Date = labelSubset$Date.x
+    labelSubset$cnt.Code = countrycode(sourcevar = labelSubset$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
+    
+  }
   
   
   return(list(TRUE,tsCShift, logScale,labelSubset, scale_y, maxDays))
   
 }
 
-covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList) {
-  
-  xlimBot = days[1]
-  xlimSup = days[2]
-  ylimSup = cases.y
-  logScale = logscale.ctrl
-  
-  tsCShift = listP[[2]] 
-  logScale =  listP[[3]]
-  labelSubset = listP[[4]]
-  scale_y = listP[[5]]
-  
-  nPaises = length(unique(countryList))
-  
-  
-  tsCShiftList = tsCShift[ tsCShift$Country.Region %in% countryList,]
-  
-  tsCShiftList = tsCShiftList[ order(tsCShiftList$Country.Region, tsCShiftList$diffDate),]
-  
-  serie_2 = data.frame( x = rep(tsCShiftList$diffDate,nPaises) , y = rep(tsCShiftList$selVarValue,nPaises), 
-                        cnt = rep(tsCShiftList$Country.Region,nPaises), Country.Region = rep(unique(countryList),nrow(tsCShiftList)))
-  
-  
-  serie_label = data.frame(x = rep(labelSubset$diffDate, nPaises),
-                           y = rep(labelSubset$selVarValue, nPaises), 
-                           label =rep(labelSubset$cnt.Code,nPaises),
-                           Country.Region = rep(unique(countryList),each = nrow(labelSubset)))
-  
-  covidBluePlot = ggplot(data=tsCShiftList,aes(x=diffDate, y=selVarValue,label = Country.Region)) + 
-    geom_text_repel(data = serie_label, aes(x=x, y=y,label = label), colour = "gray50", size = 3) +
-    geom_line(size = 1, data = serie_2, aes(x=x, y=y, group = cnt), colour = "gray") + 
-    geom_point(size = 1) +
-    geom_line(size = 1, colour = "darkblue") +
-    facet_wrap(~Country.Region) + 
-    coord_cartesian(xlim=c(xlimBot, xlimSup),  ylim = c(1,ylimSup)) + 
-    scale_color_discrete() +
-    scale_x_continuous(name=paste("Days from first day with", anchorCases," or more ", selVar, sep=" ")) +
-    #                     breaks = xlimBot:xlimSup) +
-    scale_y +
-    #scale_y_continuous( trans = "log10", limits = c(-1,125), breaks = c(-1, 5))  + 
-    theme(legend.position = "none", legend.title =  element_blank()) 
-  
-  covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
-                                            x = Inf, y = 1, vjust=0, hjust=1.1)
-  
-  covidBluePlot
-  
-  
-  
-}
-
-
-covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl) {
-  
-  xlimBot = days[1]
-  xlimSup = days[2]
-  ylimSup = cases.y
-  logScale = logscale.ctrl
-  
-  tsCShift = listP[[2]] 
-  logScale =  listP[[3]]
-  labelSubset = listP[[4]]
-  scale_y = listP[[5]]
-  
-  
-  covidColorPlot = ggplot(data=tsCShift[tsCShift$Country.Region %in% countryList,]) 
-  
-  if("Color" %in% mark.ctrl) {  
-    
-    covidColorPlot =  covidColorPlot + aes(x=diffDate, y=selVarValue, colour = Country.Region, shape = Country.Region, 
-                                           label = Country.Region) 
-  } else {
-    covidColorPlot =  covidColorPlot + aes(x=diffDate, y=selVarValue, shape = Country.Region, 
-                                           label = Country.Region) 
-  }
-  
-  if("Line Style" %in% mark.ctrl) {  
-    
-    covidColorPlot =  covidColorPlot + aes(linetype = Country.Region, ) 
-  } 
-  
-  
-  covidColorPlot =  covidColorPlot +coord_cartesian(xlim=c(xlimBot, xlimSup),  ylim = c(1,ylimSup))  
-  
-  covidColorPlot =  covidColorPlot + annotate("text", label = "@robertodepinho", color= "grey50",
-                                              x = Inf, y = 1, vjust=0, hjust=1.1)
-  
-  if("Background Lines" %in% mark.ctrl) {
-    x = tsCShift[tsCShift$Group %in% "JHU.C" & !(tsCShift$Country.Region %in%  countryList),]
-    covidColorPlot = covidColorPlot  + geom_line(size = 1, data = x , 
-                                                 aes(x=diffDate, y=selVarValue), colour = "grey90",
-                                                 show.legend = FALSE, ) 
-  } 
-  
-  if(est.ctrl !="None") {
-    b = b = 2^ (1/doublingTime)
-    if(logScale){
-      fun.l <- function(x) {log(anchorCases * b^(x), 10)}
-    } else {  
-      fun.l <- function(x) {anchorCases * b^(x)}
-    }
-    covidColorPlot = covidColorPlot  + stat_function(fun = fun.l, colour = "green")
-  }
-  
-  if(high.ctrl !="None") {
-    covidColorPlot = covidColorPlot  +   
-      geom_line(size = 2, data = tsCShift[tsCShift$Country.Region %in%  high.ctrl,], 
-                aes(x=diffDate, y=selVarValue, colour = Country.Region),
-                show.legend = FALSE) 
-    
-  }
-  
-  covidColorPlot = covidColorPlot  +
-    geom_text_repel(data = labelSubset, aes(label = Country.Region)) +
-    scale_color_discrete() +
-    scale_x_continuous(name=paste("Days from first day with", anchorCases," or more", selVar, sep=" ") ) +
-    #                     breaks = xlimBot:xlimSup) +
-    scale_y 
-  #scale_y_continuous( trans = "log10", limits = c(-1,125), breaks = c(-1, 5))  + 
-  
-  covidColorPlot = covidColorPlot  +  theme_bw()
-  covidColorPlot = covidColorPlot  + theme(legend.position =  "top", legend.title =  element_blank()) 
-  
-  
-  
-  if("Marker" %in% mark.ctrl) {
-    covidColorPlot = covidColorPlot + geom_point(size = 5, data = tsCShift[tsCShift$Country.Region %in%  highlightCountry,], shape = 1,
-                                                 aes(x=diffDate, y=selVarValue, colour = Country.Region),
-                                                 show.legend = FALSE) +
-      geom_point(size = 3, show.legend = !("Background Lines" %in% mark.ctrl)) 
-  }
-  if("Line" %in% mark.ctrl) {
-    covidColorPlot = covidColorPlot  + geom_line(size = 1) 
-  }
-  
-  
-  covidColorPlot
-  
-}
 
 
 ########################################## SETUP ###########################################
@@ -261,146 +140,151 @@ countryChoices = getCountryChoices(tsCAgg)
 ######################################## UI ###################################################
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(
-  tags$head(tags$script(HTML(JS.logify))),
-  tags$head(tags$script(HTML(JS.onload))),
-  # Application title
-  titlePanel("vizCovid Dashboard:  Confirmed Cases, Deaths, Recovered"),
-  tags$head(includeHTML(("google-analytics.html"))),
-  tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
-  tags$a(href="#about", "about"),
-  
-  
-  plotOutput("covidPlot", height = "600px"),
-  hr(),
-  
-  
-  fluidRow(
-    column(3,
-           radioButtons("var_ctrl", "Variable",
-                        choices = c("Confirmed", "Deaths", "Recovered", "Active", "New Cases", "New Deaths"),
-                        selected = "Confirmed"),
-           sliderInput("anchor",
-                       "Number of occurences to set day 0 at:",
-                       min = 1,
-                       max = 2000,
-                       value = 100),
-           sliderInput("days",
-                       "Days:",
-                       min = -15,
-                       max = 365,
-                       value = c(-1,45)),
-           checkboxInput("logscale", "Log (Value)", value = TRUE),
-           conditionalPanel(
-             condition = "input.logscale",
-             sliderInput("log_slider", "Value(log):",
-                         min = 0, max = 7, value = 5, step = 1)
-           ),
-           conditionalPanel(
-             condition = "!input.logscale",
-             sliderInput("cases.y",
-                         "Value:",
-                         min = 1,
-                         max = 200*10^3,
-                         value = 70*10^3),
-             
-             sliderInput("cases.y.fine",
-                         "Fine Tune:",
-                         min = 69*10^3,
-                         max = 71*10^3,
-                         value = 70*10^3))
-    ),
-    column(3, offset = 0,
-           
-           radioButtons("style", "Chart Style",
-                        choices = list("Single Chart (Colors)" = 1, "One Chart per Country (Blue)" = 2),selected = 1),
-           selectInput("est.ctrl", "Trend Line - Doubling Time (days)",
-                       choices = c("None","EST:Doubling Time (median)", "3", "4", "7"),
-                       selected = "None"
-           ),
-           selectInput("high.ctrl", "Highlight Country/Region",
-                       choices = c("None",countryList),
-                       selected = "Brazil"
-           ),
-           htmlOutput("doublingTime"),
-           br(),
-           checkboxGroupInput("mark.ctrl", 
-                              "Marker/Line Options", choices = c("Marker", "Line", "Line Style" , "Color", "Background Lines"),selected = c("Line", "Color"),
-                              inline = TRUE)
-           
-           
-    ),
-    column(6,
-           
-           
-           checkboxGroupInput("CR.ctrl", label = h3("Selected Country/Regions"), inline = TRUE,
-                              choices = countryList,
-                              selected = countryList),
-           hr(),
-           h5("Select Countries or Regions below to add them above:"),
-           selectInput("countries.ctrl.sel", label = h3("Countries"), 
-                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.C"])), 
-                       selected = " ", multiple = TRUE),
-           
-           selectInput("brauf.ctrl.sel", label = h3("Brazil: States"), 
-                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "BRA.UF"])), 
-                       selected = " ", multiple = TRUE),
-           
-           selectInput("bract.ctrl.sel", label = h3("Brazil: Cities"), 
-                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "IO.CT"])), 
-                       selected = " ", multiple = TRUE),
-           selectInput("regions.ctrl.sel", label = h3("World Provinces/States"), 
-                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.R"])), 
-                       selected = " ", multiple = TRUE),
-           selectInput("us50.ctrl.sel", label = h3("US: States"), 
-                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.US"])), 
-                       selected = " ", multiple = TRUE),
-           
-           
-           
-    )), 
-  fluidRow( 
-    hr(),
-    
-    h4("Chart developed by:"),
-    tags$a(id = "about"),
-    tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
-    br(),
-    p("Last updated:", timeStamp),
-    br(),
-    h4("This visualization is being generously hosted by:"),
-    tags$a(href="http://nbcgib.uesc.br/nbcgib/",
-           "NBCGIB/CCAM/PPGMC/UESC"),
-    p("Núcleo de Biologia Computacional e Gestão de Informações Biotecnológicas,"),
-    p("Centro de Computação Avançada e Modelagem, "),
-    p("Programa de Pós-Graduação em Modelagem Computacional em Ciência e Tecnologia "),
-    h5("Universidade Estadual de Santa Cruz "),
-    h5("Bahia, Brazil."),
-    tags$a(href='http://nbcgib.uesc.br/ppgmc/',
-           tags$img(src='http://nbcgib.uesc.br/ppgmc/imagens/logotopo.png',height='80')),
-    br(),
-    h4("Data Sources"),
-    h5("Countries:"),
-    tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data", 
-           "CSSE COVID-19 Dataset - Johns Hopkins University"),
-    h5("Brazilian States data:"),
-    tags$a(href="https://covid.saude.gov.br/", 
-           "Ministério da Saúde (Brasil)"),
-    h5("Brazilian Cities data:"),
-    tags$a(href="https://brasil.io/", 
-           "Brasil.io"),
-    br(),
-    tags$a(id = "double"),
-    h4("Doubling time estimate model:"),
-    tags$a(href="https://github.com/covid19br/covid19br.github.io", 
-           "Observatório COVID-19 BR"),
-    p("Showing median of last 15 days and median of their confidence intervals (level=0.95)."),
-    h4("Source:"),
-    tags$a(href="https://github.com/robertodepinho/vizCovidDashboard", 
-           "github"),
-    
-    
-  )
+ui <- fluidPage( theme = "united.min.css",
+                 tags$head(tags$script(HTML(JS.logify))),
+                 tags$head(tags$script(HTML(JS.onload))),
+                 # Application title
+                 titlePanel("vizCovid Dashboard:  Confirmed Cases, Deaths, Recovered"),
+                 tags$head(includeHTML(("google-analytics.html"))),
+                 tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
+                 tags$a(href="#about", "about"),
+                 
+                 
+                 plotOutput("covidPlot", height = "600px"),
+                 hr(),
+                 
+                 
+                 fluidRow(
+                   column(3,
+                          selectInput("var_ctrl", "Variable",
+                                      choices = c("Confirmed", "Deaths", "Recovered", "Active", "New Cases", "New Deaths"),
+                                      selected = "Confirmed"),
+                          radioButtons("date_ctrl", "Use actual date?",
+                                       choices= c("Yes", "No"),
+                                       selected= "No"),
+                          conditionalPanel(
+                            condition = "input.date_ctrl == 'No'",
+                            sliderInput("anchor",
+                                        "Number of occurences to set day 0 at:",
+                                        min = 0,
+                                        max = 2000,
+                                        value = 100),
+                          sliderInput("days",
+                                      "Days:",
+                                      min = -15,
+                                      max = 365,
+                                      value = c(-1,45))),
+                          checkboxInput("logscale", "Log (Value)", value = TRUE),
+                          conditionalPanel(
+                            condition = "input.logscale",
+                            sliderInput("log_slider", "Value(log):",
+                                        min = 0, max = 7, value = 5, step = 1)
+                          ),
+                          conditionalPanel(
+                            condition = "!input.logscale",
+                            sliderInput("cases.y",
+                                        "Value:",
+                                        min = 1,
+                                        max = 200*10^3,
+                                        value = 70*10^3),
+                            
+                            sliderInput("cases.y.fine",
+                                        "Fine Tune:",
+                                        min = 69*10^3,
+                                        max = 71*10^3,
+                                        value = 70*10^3))
+                   ),
+                   column(3, offset = 0,
+                          
+                          radioButtons("style", "Chart Style",
+                                       choices = list("Single Chart (Colors)" = 1, "One Chart per Country (Blue)" = 2),selected = 1),
+                          selectInput("est.ctrl", "Trend Line - Doubling Time (days)",
+                                      choices = c("None","EST:Doubling Time (median)", "3", "4", "7"),
+                                      selected = "None"
+                          ),
+                          selectInput("high.ctrl", "Highlight Country/Region",
+                                      choices = c("None",countryList),
+                                      selected = "Brazil"
+                          ),
+                          htmlOutput("doublingTime"),
+                          br(),
+                          checkboxGroupInput("mark.ctrl", 
+                                             "Marker/Line Options", choices = c("Marker", "Line", "Line Style" , "Color", "Background Lines"),selected = c("Line", "Color"),
+                                             inline = TRUE)
+                          
+                          
+                   ),
+                   column(6,
+                          
+                          
+                          checkboxGroupInput("CR.ctrl", label = h3("Selected Country/Regions"), inline = TRUE,
+                                             choices = countryList,
+                                             selected = countryList),
+                          hr(),
+                          h5("Select Countries or Regions below to add them above:"),
+                          selectInput("countries.ctrl.sel", label = h3("Countries"), 
+                                      choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.C"])), 
+                                      selected = " ", multiple = TRUE),
+                          
+                          selectInput("brauf.ctrl.sel", label = h3("Brazil: States"), 
+                                      choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "BRA.UF"])), 
+                                      selected = " ", multiple = TRUE),
+                          
+                          selectInput("bract.ctrl.sel", label = h3("Brazil: Cities"), 
+                                      choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "IO.CT"])), 
+                                      selected = " ", multiple = TRUE),
+                          selectInput("regions.ctrl.sel", label = h3("World Provinces/States"), 
+                                      choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.R"])), 
+                                      selected = " ", multiple = TRUE),
+                          selectInput("us50.ctrl.sel", label = h3("US: States"), 
+                                      choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.US"])), 
+                                      selected = " ", multiple = TRUE),
+                          
+                          
+                          
+                   )), 
+                 fluidRow( 
+                   hr(),
+                   
+                   h4("Chart developed by:"),
+                   tags$a(id = "about"),
+                   tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
+                   br(),
+                   p("Last updated:", timeStamp),
+                   br(),
+                   h4("This visualization is being generously hosted by:"),
+                   tags$a(href="http://nbcgib.uesc.br/nbcgib/",
+                          "NBCGIB/CCAM/PPGMC/UESC"),
+                   p("Núcleo de Biologia Computacional e Gestão de Informações Biotecnológicas,"),
+                   p("Centro de Computação Avançada e Modelagem, "),
+                   p("Programa de Pós-Graduação em Modelagem Computacional em Ciência e Tecnologia "),
+                   h5("Universidade Estadual de Santa Cruz "),
+                   h5("Bahia, Brazil."),
+                   tags$a(href='http://nbcgib.uesc.br/ppgmc/',
+                          tags$img(src='http://nbcgib.uesc.br/ppgmc/imagens/logotopo.png',height='80')),
+                   br(),
+                   h4("Data Sources"),
+                   h5("Countries:"),
+                   tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data", 
+                          "CSSE COVID-19 Dataset - Johns Hopkins University"),
+                   h5("Brazilian States data:"),
+                   tags$a(href="https://covid.saude.gov.br/", 
+                          "Ministério da Saúde (Brasil)"),
+                   h5("Brazilian Cities data:"),
+                   tags$a(href="https://brasil.io/", 
+                          "Brasil.io"),
+                   br(),
+                   tags$a(id = "double"),
+                   h4("Doubling time estimate model:"),
+                   tags$a(href="https://github.com/covid19br/covid19br.github.io", 
+                          "Observatório COVID-19 BR"),
+                   p("Showing median of last 15 days and median of their confidence intervals (level=0.95)."),
+                   h4("Source:"),
+                   tags$a(href="https://github.com/robertodepinho/vizCovidDashboard", 
+                          "github"),
+                   
+                   
+                 )
 )
 
 
@@ -480,19 +364,20 @@ server <- function(input, output, session) {
               
               tags$a(href="#double", "*") ,sep=""))
       
-      
-      # b = 2^ (1/doublingTime)
-      # x = estSerieApp(b, log(10^6, b), "EST:Doubling Time (median)")
-      # tsCAgg = tsCAgg[!tsCAgg$Country.Region %in% "EST:Doubling Time (median)",]
-      # tsCAgg = rbind(tsCAgg, x)
     } else  {output$doublingTime <- renderText("")}
     
     
     
     countryList = unique(c(input$CR.ctrl))
     
+    anchorCases = input$anchor
+    
+    if(input$date_ctrl == "Yes") {
+      anchorCases = 0
+    }
+    
     #prepare data
-    listP = chartDataPrepare(input$var_ctrl,tsCAgg,input$anchor, input$days, casesValue, input$logscale, countryList)
+    listP = chartDataPrepare(input$var_ctrl,tsCAgg, anchorCases, input$days, casesValue, input$logscale, countryList)
     
     if(!listP[[1]]) {
       g = ggplot(data.frame(x =c(0,100), y = c(0,100)), aes(x= x, y= y)) + 
@@ -521,11 +406,25 @@ server <- function(input, output, session) {
     updateSliderInput(session, inputId = "days", max = maxDays)
     
     if(input$style == 1) {
-      covidColor(input$var_ctrl,tsCAgg,listP, input$anchor, 
-                 input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl)
+      
+      if(anchorCases!=0){
+        covidColor(input$var_ctrl,tsCAgg,listP, anchorCases, 
+                   input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl)
+      } else {
+        covidColorDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
+                       input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl)
+        
+        
+      }
+      
     } else {
-      covidBlue(input$var_ctrl,tsCAgg,listP, input$anchor, 
-                input$days, casesValue, input$logscale, countryList)
+      if(anchorCases!=0){
+        covidBlue(input$var_ctrl,tsCAgg,listP, anchorCases, 
+                  input$days, casesValue, input$logscale, countryList)
+      } else {
+        covidBlueDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
+                      input$days, casesValue, input$logscale, countryList)
+      }
     }
     
   })

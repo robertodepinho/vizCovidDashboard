@@ -330,9 +330,12 @@ newCasesDeaths <- function() {
 # "ideal seria ter os controles em um overlay semitransparente e colapsável"
 # pt_BR
 # cidades filtro por UF
-# US States / Cities
+# US Counties, Cities
 # use selectizeInput?
 # R0
+# OK Actual Date
+# OK US States 
+
 
 timeStamp = format(Sys.time(),"%Y%m%d_%H%M%S")
 downloadJHU()
@@ -342,13 +345,13 @@ tsCAgg = prepareData()
 tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 #last Day
-x = data.frame(Date = as.Date("2020-04-16"),
+x = data.frame(Date = as.Date("2020-04-17"),
                Country.Region = "Brazil", 
-               Confirmed = 30425, #Boletim MS
-               Deaths = 1924,
+               Confirmed = 33682, #Boletim MS
+               Deaths = 2141,
                Recovered = NA,
                Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
-#tsCAgg = rbind(tsCAgg, x)
+tsCAgg = rbind(tsCAgg, x)
 #tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
@@ -357,7 +360,7 @@ tsCAgg = prepareDataJHU.Regions(tsCAgg)
 tsCAgg = prepareData.US(tsCAgg)
 
 
-fileName = "~/Downloads/e2c2725318b653d2863baf5357b71135_Download_COVID19_20200415.csv"
+fileName = "~/Downloads/9968e11f13dd30c9831e3b1e8da3eb74_Download_COVID19_20200417.csv"
 tsCAgg = downloadMSCSV(fileName)
 tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ]
 
