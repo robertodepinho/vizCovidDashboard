@@ -31,6 +31,32 @@ downloadJHU <- function() {
   
 }
 
+downloadJHU.US <- function() {
+  
+  #source
+  sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
+  #Live file with download
+  destFile = paste("./csv_how/time_series_19-covid-Confirmed_US_", timeStamp, ".csv", sep = "")
+  download.file(sourceURL, destfile = destFile, method = "curl")
+  file.copy(destFile, "time_series_19-covid-Confirmed_US_last.csv", overwrite = TRUE)
+  
+  sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
+  #Live file with download
+  destFile = paste("./csv_how/time_series_19-covid-Deaths_US_", timeStamp, ".csv", sep = "")
+  download.file(sourceURL, destfile = destFile, method = "curl")
+  file.copy(destFile, "time_series_19-covid-Deaths_US_last.csv", overwrite = TRUE)
+  
+  # sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_US.csv"
+  # #Live file with download
+  # destFile = paste("./csv_how/time_series_19-covid-Recovered_US_", timeStamp, ".csv", sep = "")
+  # download.file(sourceURL, destfile = destFile, method = "curl")
+  # file.copy(destFile, "time_series_19-covid-Recovered_US_last.csv", overwrite = TRUE)
+  # 
+  
+}
+
+
+
 downloadMSCSV <- function(fileName){
   
 
@@ -138,6 +164,51 @@ prepareData <- function() {
   
   
   
+  
+  return(tsCAgg)
+  
+}
+
+
+prepareData.US <- function(tsCAggPar) {
+  
+  tsConfirmed = read.csv("time_series_19-covid-Confirmed_US_last.csv")
+  tsC = reshape2::melt(tsConfirmed, id.vars=
+                         c("UID", "iso2", "iso3", "code3", "FIPS", "Admin2", "Province_State", 
+                           "Country_Region", "Lat", "Long_", "Combined_Key"))
+  colnames(tsC)[colnames(tsC) %in% "value" ] = "Confirmed"
+  tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
+  tsCAgg = aggregate( Confirmed ~ Date + Province_State, tsC, sum, na.rm = T)
+  
+  tsDeaths = read.csv("time_series_19-covid-Deaths_US_last.csv")
+  tsC = reshape2::melt(tsDeaths, id.vars= 
+                         c("UID", "iso2", "iso3", "code3", "FIPS", "Admin2", "Province_State", 
+                                            "Country_Region", "Lat", "Long_", "Combined_Key"))
+  colnames(tsC)[colnames(tsC) %in% "value" ] = "Deaths"
+  tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
+  tsCAggD = aggregate( Deaths ~ Date + Province_State, tsC, sum, na.rm = T)
+  
+  # tsC = read.csv("time_series_19-covid-Recovered_US_last.csv")
+  # tsC = reshape2::melt(tsC, id.vars=
+  #                        c("UID", "iso2", "iso3", "code3", "FIPS", "Admin2", "Province_State", 
+  #                          "Country_Region", "Lat", "Long_", "Combined_Key"))
+  # colnames(tsC)[colnames(tsC) %in% "value" ] = "Recovered"
+  # tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
+  # tsCAggR = aggregate( Recovered ~ Date + Province_State, tsC, sum, na.rm = T)
+  # 
+  
+  tsCAgg = merge(x = tsCAgg, y = tsCAggD, by = c("Date", "Province_State"), all = TRUE)
+  #tsCAgg = merge(x = tsCAgg, y = tsCAggR, by = c("Date", "Province_State"), all = TRUE)
+  
+  tsCAgg$Recovered = NA
+  tsCAgg$Active = NA #tsCAgg$Confirmed - tsCAgg$Deaths - tsCAgg$Recovered
+  tsCAgg$Group =  "JHU.US"
+  
+  colnames(tsCAgg)[colnames(tsCAgg) == "Province_State" ] = "Country.Region"
+  
+  
+  
+  tsCAgg = rbind(tsCAggPar, tsCAgg)
   
   return(tsCAgg)
   
@@ -265,22 +336,26 @@ newCasesDeaths <- function() {
 
 timeStamp = format(Sys.time(),"%Y%m%d_%H%M%S")
 downloadJHU()
+downloadJHU.US()
 
 tsCAgg = prepareData()
 tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 #last Day
-x = data.frame(Date = as.Date("2020-04-15"),
+x = data.frame(Date = as.Date("2020-04-16"),
                Country.Region = "Brazil", 
-               Confirmed = 28320, #Boletim MS
-               Deaths = 1736,
+               Confirmed = 30425, #Boletim MS
+               Deaths = 1924,
                Recovered = NA,
                Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
-tsCAgg = rbind(tsCAgg, x)
+#tsCAgg = rbind(tsCAgg, x)
 #tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
 #tsCAgg[tsCAgg$Country.Region %in% "CN:Hubei", ]
+
+tsCAgg = prepareData.US(tsCAgg)
+
 
 fileName = "~/Downloads/e2c2725318b653d2863baf5357b71135_Download_COVID19_20200415.csv"
 tsCAgg = downloadMSCSV(fileName)
@@ -295,8 +370,9 @@ tsCAgg = newCasesDeaths()
 
  tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
  tail(tsCAgg[tsCAgg$Country.Region %in% "AU:New South Wales", ])
+ tail(tsCAgg[tsCAgg$Country.Region %in% "New York", ])
  tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:Brasil", ])
  tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
 
 save(tsCAgg, timeStamp, file= "../tsCAgg.RData")
-
+  

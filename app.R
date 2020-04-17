@@ -156,7 +156,7 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
 }
 
 
-covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime) {
+covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -198,14 +198,15 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
                                                  show.legend = FALSE, ) 
   } 
   
-  b = b = 2^ (1/doublingTime)
-  if(logScale){
-    fun.l <- function(x) {log(anchorCases * b^(x), 10)}
-  } else {  
-    fun.l <- function(x) {anchorCases * b^(x)}
+  if(est.ctrl !="None") {
+    b = b = 2^ (1/doublingTime)
+    if(logScale){
+      fun.l <- function(x) {log(anchorCases * b^(x), 10)}
+    } else {  
+      fun.l <- function(x) {anchorCases * b^(x)}
+    }
+    covidColorPlot = covidColorPlot  + stat_function(fun = fun.l, colour = "green")
   }
-  covidColorPlot = covidColorPlot  + stat_function(fun = fun.l, colour = "green")
-  
   
   if(high.ctrl !="None") {
     covidColorPlot = covidColorPlot  +   
@@ -350,7 +351,11 @@ ui <- fluidPage(
                        selected = " ", multiple = TRUE),
            selectInput("regions.ctrl.sel", label = h3("World Provinces/States"), 
                        choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.R"])), 
-                       selected = " ", multiple = TRUE)
+                       selected = " ", multiple = TRUE),
+           selectInput("us50.ctrl.sel", label = h3("US: States"), 
+                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.US"])), 
+                       selected = " ", multiple = TRUE),
+           
            
            
     )), 
@@ -411,12 +416,12 @@ server <- function(input, output, session) {
   output$covidPlot <- renderPlot({
     
     toListen <- reactive({
-      list(input$countries.ctrl.sel , input$brauf.ctrl.sel , input$bract.ctrl.sel, input$regions.ctrl.sel)
+      list(input$countries.ctrl.sel , input$brauf.ctrl.sel , input$bract.ctrl.sel, input$regions.ctrl.sel, input$us50.ctrl.sel)
     })
     
     observeEvent(toListen(), {
-      changeGroup = sort(unique(c(input$countries.ctrl.sel, input$brauf.ctrl.sel, input$bract.ctrl.sel, input$regions.ctrl.sel)))
-      TTTGroup = sort(unique(c(input$countries.ctrl.sel, input$brauf.ctrl.sel, input$bract.ctrl.sel, input$regions.ctrl.sel, input$CR.ctrl)))
+      changeGroup = sort(unique(c(input$countries.ctrl.sel, input$brauf.ctrl.sel, input$bract.ctrl.sel, input$regions.ctrl.sel, input$us50.ctrl.sel)))
+      TTTGroup = sort(unique(c(input$countries.ctrl.sel, input$brauf.ctrl.sel, input$bract.ctrl.sel, input$regions.ctrl.sel, input$us50.ctrl.sel, input$CR.ctrl)))
       TTTGroup = TTTGroup[TTTGroup != " "]
       
       if(!identical(session$userData$antGroup, changeGroup)) {
@@ -458,6 +463,7 @@ server <- function(input, output, session) {
       
     }
     
+    doublingTime = 7
     if(input$high.ctrl != "None" & input$est.ctrl != "EST:Doubling Time (median)") {
       doublingTime = as.numeric(input$est.ctrl)
     } 
@@ -483,7 +489,7 @@ server <- function(input, output, session) {
     
     
     
-    countryList = unique(c(input$CR.ctrl, input$est.ctrl))
+    countryList = unique(c(input$CR.ctrl))
     
     #prepare data
     listP = chartDataPrepare(input$var_ctrl,tsCAgg,input$anchor, input$days, casesValue, input$logscale, countryList)
@@ -516,7 +522,7 @@ server <- function(input, output, session) {
     
     if(input$style == 1) {
       covidColor(input$var_ctrl,tsCAgg,listP, input$anchor, 
-                 input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime)
+                 input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl)
     } else {
       covidBlue(input$var_ctrl,tsCAgg,listP, input$anchor, 
                 input$days, casesValue, input$logscale, countryList)
