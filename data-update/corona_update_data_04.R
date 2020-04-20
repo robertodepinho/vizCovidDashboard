@@ -61,7 +61,11 @@ downloadMSCSV <- function(fileName){
   
 
   UFData = read.delim(fileName, header = T, sep = ";", fileEncoding="latin1")
-  UFData$Date =as.Date(as.character(UFData$data), format = "%Y-%m-%d") #as.Date(as.character(UFData$data), format = "%d/%m/%Y") #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
+  UFData$Date =as.Date(as.character(UFData$data), format = "%d/%m/%Y")
+  #as.Date(as.character(UFData$data), format = "%Y-%m-%d")
+  #as.Date(as.character(UFData$data), format = "%d/%m/%Y") 
+  #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) 
+  #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
   UFData$Country.Region = UFData$estado
   UFData$Confirmed = UFData$casosAcumulados
   UFData$Deaths = UFData$obitosAcumulados
@@ -265,43 +269,6 @@ prepareDataJHU.Regions <- function(tsCAgg) {
 
 
 
-estSerie <- function(b, maxDays, name) {
-  x = data.frame(Country.Region = name, 
-                 Date= as.Date(1, origin = "2020-01-01"):as.Date(maxDays, origin = "2020-01-01"),
-                 Confirmed = b^((1:maxDays)-1), Deaths =  b^((1:maxDays)-1), 
-                 Recovered =  b^((1:maxDays)-1), Active = b^((1:maxDays)-1))
-  x$Date = as.Date(x$Date, origin = "2020-01-01")
-  x$Group = "EST"
-  return(x)
-}
-
-estSeries <- function() {
-  
-  countDays = aggregate(Date~Country.Region, tsCAgg, length )
-  maxDays = max(countDays$Date) + 1
-  
-  # b = 2
-  # x = estSerie(b, 30, "EST:Double Every Day")
-  # tsCAgg = rbind(tsCAgg, x)
-  # b = sqrt(2)
-  # x = estSerie(b, maxDays, "EST:Double Every 2 Days")
-  # tsCAgg = rbind(tsCAgg, x)
-  b = 2^ (1/3)
-  x = estSerie(b, maxDays, "EST:Double Every 3 Days")
-  tsCAgg = rbind(tsCAgg, x)
-  b = 2^ (1/4)
-  x = estSerie(b, maxDays, "EST:Double Every 4 Days")
-  tsCAgg = rbind(tsCAgg, x)
-  b = 2^ (1/7)
-  x = estSerie(b, maxDays+100, "EST:Double Every Week")
-  tsCAgg = rbind(tsCAgg, x)
-  b = 1.33
-  x = estSerie(b, maxDays, "EST:33% (Double ~2.5 Days)")
-  tsCAgg = rbind(tsCAgg, x)
-  
-  return(tsCAgg)
-  
-}
 
 newCasesDeaths <- function() {
   
@@ -333,6 +300,7 @@ newCasesDeaths <- function() {
 # US Counties, Cities
 # use selectizeInput?
 # R0
+# check medians
 # OK Actual Date
 # OK US States 
 
@@ -345,13 +313,13 @@ tsCAgg = prepareData()
 tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 #last Day
-x = data.frame(Date = as.Date("2020-04-17"),
+x = data.frame(Date = as.Date("2020-04-18"),
                Country.Region = "Brazil", 
-               Confirmed = 33682, #Boletim MS
-               Deaths = 2141,
+               Confirmed = 36599, #Boletim MS
+               Deaths = 2347,
                Recovered = NA,
                Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
-tsCAgg = rbind(tsCAgg, x)
+#tsCAgg = rbind(tsCAgg, x)
 #tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
 
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
@@ -360,7 +328,7 @@ tsCAgg = prepareDataJHU.Regions(tsCAgg)
 tsCAgg = prepareData.US(tsCAgg)
 
 
-fileName = "~/Downloads/9968e11f13dd30c9831e3b1e8da3eb74_Download_COVID19_20200417.csv"
+fileName = "~/Downloads/4320f637fbf33d5a47834ea7c114a995_Download_COVID19_20200419.csv"
 tsCAgg = downloadMSCSV(fileName)
 tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ]
 
@@ -379,3 +347,42 @@ tsCAgg = newCasesDeaths()
 
 save(tsCAgg, timeStamp, file= "../tsCAgg.RData")
   
+#################################################################################################
+
+estSerie_deprecated <- function(b, maxDays, name) {
+  x = data.frame(Country.Region = name, 
+                 Date= as.Date(1, origin = "2020-01-01"):as.Date(maxDays, origin = "2020-01-01"),
+                 Confirmed = b^((1:maxDays)-1), Deaths =  b^((1:maxDays)-1), 
+                 Recovered =  b^((1:maxDays)-1), Active = b^((1:maxDays)-1))
+  x$Date = as.Date(x$Date, origin = "2020-01-01")
+  x$Group = "EST"
+  return(x)
+}
+
+estSeries_deprecated <- function() {
+  
+  countDays = aggregate(Date~Country.Region, tsCAgg, length )
+  maxDays = max(countDays$Date) + 1
+  
+  # b = 2
+  # x = estSerie(b, 30, "EST:Double Every Day")
+  # tsCAgg = rbind(tsCAgg, x)
+  # b = sqrt(2)
+  # x = estSerie(b, maxDays, "EST:Double Every 2 Days")
+  # tsCAgg = rbind(tsCAgg, x)
+  b = 2^ (1/3)
+  x = estSerie(b, maxDays, "EST:Double Every 3 Days")
+  tsCAgg = rbind(tsCAgg, x)
+  b = 2^ (1/4)
+  x = estSerie(b, maxDays, "EST:Double Every 4 Days")
+  tsCAgg = rbind(tsCAgg, x)
+  b = 2^ (1/7)
+  x = estSerie(b, maxDays+100, "EST:Double Every Week")
+  tsCAgg = rbind(tsCAgg, x)
+  b = 1.33
+  x = estSerie(b, maxDays, "EST:33% (Double ~2.5 Days)")
+  tsCAgg = rbind(tsCAgg, x)
+  
+  return(tsCAgg)
+  
+}

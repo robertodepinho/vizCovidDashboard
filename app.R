@@ -127,7 +127,7 @@ chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.
 ########################################## SETUP ###########################################
 load("tsCAgg.RData")
 tsCAgg$cnt.Code = countrycode(sourcevar = tsCAgg$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
-
+dateLimits = c(min(tsCAgg$Date, na.rm=T)-7, max(tsCAgg$Date, na.rm=T)+7)
 
 countryList = c("Brazil", "Italy", "Japan", "Korea, South", "France")
 
@@ -174,6 +174,13 @@ ui <- fluidPage( theme = "united.min.css",
                                       min = -15,
                                       max = 365,
                                       value = c(-1,45))),
+                          conditionalPanel(
+                            condition = "input.date_ctrl == 'Yes'",
+                            sliderInput("date_range",
+                                        "Dates:",
+                                        min = dateLimits[1],
+                                        max = dateLimits[2],
+                                        value = dateLimits)),
                           checkboxInput("logscale", "Log (Value)", value = TRUE),
                           conditionalPanel(
                             condition = "input.logscale",
@@ -412,7 +419,9 @@ server <- function(input, output, session) {
                    input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl)
       } else {
         covidColorDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
-                       input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl)
+                       input$days, casesValue, input$logscale, countryList, 
+                       input$mark.ctrl, input$high.ctrl, doublingTime, 
+                       input$est.ctrl, input$date_range)
         
         
       }
@@ -423,7 +432,8 @@ server <- function(input, output, session) {
                   input$days, casesValue, input$logscale, countryList)
       } else {
         covidBlueDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
-                      input$days, casesValue, input$logscale, countryList)
+                      input$days, casesValue, input$logscale, countryList,
+                      input$date_range)
       }
     }
     

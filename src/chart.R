@@ -49,7 +49,7 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
 }
 
-covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList) {
+covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, date_range) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -94,7 +94,7 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logsc
    covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
                                              x = max(tsCShiftList$Date, na.rm=T), y = 1, vjust=0, hjust=1.1)
  
-   covidBluePlot = covidBluePlot  + scale_x_date(date_breaks = "1 month", date_labels = "%b")
+   covidBluePlot = covidBluePlot  + scale_x_date(date_breaks = "1 month", date_labels = "%b", limits = date_range)
   
    return(covidBluePlot)
    
@@ -191,7 +191,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
 }
 
-covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl) {
+covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl, date_range) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -223,7 +223,7 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
   }
   
   
-  covidColorPlot =  covidColorPlot +coord_cartesian(xlim=c(min(tsCAgg$Date, na.rm=T), max(tsCAgg$Date, na.rm=T)),  ylim = c(1,ylimSup))  
+  covidColorPlot =  covidColorPlot +coord_cartesian(xlim=date_range,  ylim = c(1,ylimSup))  
   covidColorPlot =  covidColorPlot + annotate("text", label = "@robertodepinho", color= "grey50",
                                               x = max(tsCAgg$Date, na.rm=T), y = 1, vjust=0, hjust=1.1)
   if("Background Lines" %in% mark.ctrl) {
@@ -269,7 +269,7 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
   
   
   
-  covidColorPlot = covidColorPlot  + scale_x_date(date_breaks = "1 week", date_labels = "%d %b")
+  covidColorPlot = covidColorPlot  + scale_x_date(date_breaks = "1 week", date_labels = "%d %b", limits = date_range)
   
   return(covidColorPlot)
   
