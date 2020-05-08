@@ -101,7 +101,7 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logsc
 }
 
 
-covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl) {
+covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl,  backgroundList) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -137,7 +137,8 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
                                               x = Inf, y = 1, vjust=0, hjust=1.1)
   
   if("Background Lines" %in% mark.ctrl) {
-    x = tsCShift[tsCShift$Group %in% "JHU.C" & !(tsCShift$Country.Region %in%  countryList),]
+    #x = tsCShift[tsCShift$Group %in% "JHU.C" & !(tsCShift$Country.Region %in%  countryList),]
+    x = tsCShift[tsCShift$Country.Region %in%  backgroundList & !(tsCShift$Country.Region %in%  countryList),]
     covidColorPlot = covidColorPlot  + geom_line(size = 1, data = x , 
                                                  aes(x=diffDate, y=selVarValue), colour = "grey90",
                                                  linetype = "solid",
@@ -191,7 +192,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
 }
 
-covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl, date_range) {
+covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl, date_range, backgroundList) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -227,7 +228,7 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
   covidColorPlot =  covidColorPlot + annotate("text", label = "@robertodepinho", color= "grey50",
                                               x = max(tsCAgg$Date, na.rm=T), y = 1, vjust=0, hjust=1.1)
   if("Background Lines" %in% mark.ctrl) {
-    x = tsCShift[tsCShift$Group %in% "JHU.C" & !(tsCShift$Country.Region %in%  countryList),]
+    x = tsCShift[tsCShift$Country.Region %in%  backgroundList & !(tsCShift$Country.Region %in%  countryList),]
     covidColorPlot = covidColorPlot  + geom_line(size = 1, data = x , 
                                                  aes(x=Date, y=selVarValue), colour = "grey90", 
                                                  linetype = "solid",

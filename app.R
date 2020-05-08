@@ -127,10 +127,10 @@ chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.
 ########################################## SETUP ###########################################
 load("tsCAgg.RData")
 tsCAgg$cnt.Code = countrycode(sourcevar = tsCAgg$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
-dateLimits = c(min(tsCAgg$Date, na.rm=T)-7, max(tsCAgg$Date, na.rm=T)+7)
+dateLimits = c(min(tsCAgg$Date, na.rm=T)-1, max(tsCAgg$Date, na.rm=T)+1)
 
-countryList = c("Brazil", "Italy", "Japan", "Korea, South", "France")
-
+backgroundList = c("BRA:Brasil", "Italy", "Japan", "Korea, South", "France", "US", "China", "Mexico", "Portugal")
+countryList = c("BRA:Brasil", "BRA:SP", "BRA:RJ", "BRA:AM", "BRA:BA")
 
 countryChoices = getCountryChoices(tsCAgg)
 ###############################################################################################
@@ -157,30 +157,30 @@ ui <- fluidPage( theme = "united.min.css",
                  fluidRow(
                    column(3,
                           selectInput("var_ctrl", "Variable",
-                                      choices = c("Confirmed", "Deaths", "Recovered", "Active", "New Cases", "New Deaths"),
-                                      selected = "Confirmed"),
+                                      choices = c("Confirmed", "Deaths", "Recovered", "Active", "New Cases", "New Deaths", "New Cases Avg", "New Deaths Avg"),
+                                      selected = "New Cases"),
                           radioButtons("date_ctrl", "Use actual date?",
                                        choices= c("Yes", "No"),
-                                       selected= "No"),
+                                       selected= "Yes"),
                           conditionalPanel(
                             condition = "input.date_ctrl == 'No'",
                             sliderInput("anchor",
                                         "Number of occurences to set day 0 at:",
                                         min = 0,
-                                        max = 2000,
+                                        max = 5000,
                                         value = 100),
                           sliderInput("days",
                                       "Days:",
                                       min = -15,
                                       max = 365,
-                                      value = c(-1,45))),
+                                      value = c(-1,90))),
                           conditionalPanel(
                             condition = "input.date_ctrl == 'Yes'",
                             sliderInput("date_range",
                                         "Dates:",
                                         min = dateLimits[1],
                                         max = dateLimits[2],
-                                        value = dateLimits)),
+                                        value = c(Sys.Date()-60,dateLimits[2]))),
                           checkboxInput("logscale", "Log (Value)", value = TRUE),
                           conditionalPanel(
                             condition = "input.logscale",
@@ -193,7 +193,7 @@ ui <- fluidPage( theme = "united.min.css",
                                         "Value:",
                                         min = 1,
                                         max = 200*10^3,
-                                        value = 70*10^3),
+                                        value = 30*10^3),
                             
                             sliderInput("cases.y.fine",
                                         "Fine Tune:",
@@ -205,13 +205,13 @@ ui <- fluidPage( theme = "united.min.css",
                           
                           radioButtons("style", "Chart Style",
                                        choices = list("Single Chart (Colors)" = 1, "One Chart per Country (Blue)" = 2),selected = 1),
-                          selectInput("est.ctrl", "Trend Line - Doubling Time (days)",
-                                      choices = c("None","EST:Doubling Time (median)", "3", "4", "7"),
+                          selectInput("est.ctrl", "Trend Line",
+                                      choices = c("None", "3", "4", "7", "15"),
                                       selected = "None"
                           ),
                           selectInput("high.ctrl", "Highlight Country/Region",
                                       choices = c("None",countryList),
-                                      selected = "Brazil"
+                                      selected = "BRA:Brasil"
                           ),
                           htmlOutput("doublingTime"),
                           br(),
@@ -416,12 +416,12 @@ server <- function(input, output, session) {
       
       if(anchorCases!=0){
         covidColor(input$var_ctrl,tsCAgg,listP, anchorCases, 
-                   input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl)
+                   input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl, backgroundList)
       } else {
         covidColorDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
                        input$days, casesValue, input$logscale, countryList, 
                        input$mark.ctrl, input$high.ctrl, doublingTime, 
-                       input$est.ctrl, input$date_range)
+                       input$est.ctrl, input$date_range, backgroundList)
         
         
       }
