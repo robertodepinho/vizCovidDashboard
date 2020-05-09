@@ -152,7 +152,7 @@ prepareData.US <- function(tsCAggPar) {
   tsDeaths = read.csv("time_series_19-covid-Deaths_US_last.csv")
   tsC = reshape2::melt(tsDeaths, id.vars= 
                          c("UID", "iso2", "iso3", "code3", "FIPS", "Admin2", "Province_State", 
-                                            "Country_Region", "Lat", "Long_", "Combined_Key"))
+                           "Country_Region", "Lat", "Long_", "Combined_Key"))
   colnames(tsC)[colnames(tsC) %in% "value" ] = "Deaths"
   tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
   tsCAggD = aggregate( Deaths ~ Date + Province_State, tsC, sum, na.rm = T)
@@ -224,7 +224,7 @@ prepareDataJHU.Regions <- function(tsCAgg) {
   tsM$Group =  "JHU.R"
   
   tsMAgg = tsM[, c("Date", "Country.Region", "Confirmed", "Deaths", "Recovered", 
-                      "Active", "Group")]
+                   "Active", "Group")]
   
   tsCAgg = rbind(tsCAgg, tsMAgg)
   
@@ -359,11 +359,11 @@ tsCAgg = downloadBrasil.io()
 #tsCAgg = estSeries()
 tsCAgg = newCasesDeaths()
 
- tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
- tail(tsCAgg[tsCAgg$Country.Region %in% "AU:New South Wales", ])
- tail(tsCAgg[tsCAgg$Country.Region %in% "New York", ])
- tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:Brasil", ])
- tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "AU:New South Wales", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "New York", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:Brasil", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
 
 save(tsCAgg, timeStamp, file= "../tsCAgg.RData")
 
