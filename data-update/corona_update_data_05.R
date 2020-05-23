@@ -55,10 +55,6 @@ downloadJHU.US <- function() {
   
 }
 
-
-
-
-
 downloadBrasil.io <- function(){
   
   sourceURL = "https://brasil.io/dataset/covid19/caso?format=csv"
@@ -99,11 +95,17 @@ downloadBrasil.io <- function(){
   ufCAgg$Country.Region = paste("CT-", ufCAgg$Country.Region, sep = "")
   tsCAgg = rbind(tsCAgg, ufCAgg)
   
+  x = aggregate(cbind(Confirmed, Deaths) ~ Date , tsCAgg[ (substr(tsCAgg$Country.Region, 1, 7)) == "IO.BRA:" ,],sum, na.rm=T)
+  x$Country.Region = "IO.BRA:Brasil"
+  x$Recovered = NA
+  x$Active = NA
+  x$Group = "IO.UF"
+  x = x[, colnames(tsCAgg)]
+  tsCAgg = rbind(tsCAgg, x)
   
   return(tsCAgg)
   
 }
-
 
 prepareData <- function() {
   
@@ -137,7 +139,6 @@ prepareData <- function() {
   return(tsCAgg)
   
 }
-
 
 prepareData.US <- function(tsCAggPar) {
   
@@ -182,7 +183,6 @@ prepareData.US <- function(tsCAggPar) {
   return(tsCAgg)
   
 }
-
 
 prepareDataJHU.Regions <- function(tsCAgg) {
   
@@ -232,9 +232,6 @@ prepareDataJHU.Regions <- function(tsCAgg) {
   
 }
 
-
-
-
 newCasesDeaths <- function() {
   
   
@@ -266,18 +263,29 @@ newCasesDeaths <- function() {
 }
 
 
+
 downloadMSCSV <- function(fileName){
   
+  # library(XLConnect)
+  # UFData = readWorksheetFromFile(fileName, sheet = 1)
+  # library(xlsx)
+  # UFData = read.xlsx(fileName, 1)
+  # UFData = read.delim(fileName, header = T, sep = ";", fileEncoding="latin1")
+  # 
   
-  UFData = read.delim(fileName, header = T, sep = ";", fileEncoding="latin1")
+  UFData = read.csv(fileName)
+  UFData = subset(UFData, is.na(codmun))
+  UFData = subset(UFData, estado != "")
+  
+  
   UFData$Date =as.Date(as.character(UFData$data), format = , tryFormats = c("%Y-%m-%d","%d/%m/%Y"))
   #as.Date(as.character(UFData$data), format = "%Y-%m-%d")
   #as.Date(as.character(UFData$data), format = "%d/%m/%Y") 
   #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) 
   #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
   UFData$Country.Region = UFData$estado
-  UFData$Confirmed = UFData$casosAcumulados
-  UFData$Deaths = UFData$obitosAcumulados
+  UFData$Confirmed = UFData$casosAcumulado
+  UFData$Deaths = UFData$obitosAcumulado
   UFData$Recovered = NA
   UFData$Active = NA
   UFData$Group =  "BRA.UF"
@@ -324,58 +332,114 @@ downloadMSCSV <- function(fileName){
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-
 timeStamp = format(Sys.time(),"%Y%m%d_%H%M%S")
 downloadJHU()
 downloadJHU.US()
 
 tsCAgg = prepareData()
-tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
-
-#last Day
-x = data.frame(Date = as.Date("2020-05-08"),
-               Country.Region = "Brazil", 
-               Confirmed = 145328, #Boletim MS
-               Deaths = 9897,
-               Recovered = NA,
-               Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
-tsCAgg = rbind(tsCAgg, x)
-#tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
-
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
-#tsCAgg[tsCAgg$Country.Region %in% "CN:Hubei", ]
-
 tsCAgg = prepareData.US(tsCAgg)
 
-#fileName = "blob:https://covid.saude.gov.br/c0e87a68-16b3-4c91-8a54-11a9a4dcce88"
-fileName = "~/Downloads/arquivo_geral(4).csv"
-tsCAgg = downloadMSCSV(fileName)
-tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ]
+
+#fileName = "~/Downloads/HIST_PAINEL_COVIDBR_19mai2020.xlsx" 
+#fileName.csv = "HIST_PAINEL_COVIDBR_19mai2020.csv" 
+fileName = paste("~/Downloads/HIST_PAINEL_COVIDBR_", format(Sys.time(),"%d%b%Y"), ".xlsx", sep = "") #"%Y%m%d"
+fileName.csv = paste("HIST_PAINEL_COVIDBR_", format(Sys.time(),"%d%b%Y"), ".csv", sep = "")
+
+Sys.setenv(LD_LIBRARY_PATH = "/usr/lib/libreoffice/program/")
+command = paste("libreoffice --headless --convert-to csv ",
+             fileName, sep = " ")
+system(command, wait = TRUE)
 
 
+#fileName = "~/Downloads/arquivo_geral.csv"
+tsCAgg = downloadMSCSV(fileName.csv)
 tsCAgg = downloadBrasil.io()
 
 
-#tsCAgg = estSeries()
+#completar minsaude com Brasil.io
+missingDates = unique(tsCAgg$Date[tsCAgg$Group =="IO.UF"] )
+missingDates = missingDates[!(missingDates %in%  
+                              unique(tsCAgg$Date[tsCAgg$Group =="BRA.UF"]) )]
+# x = subset(tsCAgg, Date %in%  missingDates & Group %in% "IO.UF" )
+# x$Group = "BRA.UF"
+# x$Country.Region= substring(x$Country.Region,4)
+# tsCAgg = rbind(tsCAgg, x)
+
 tsCAgg = newCasesDeaths()
 
 tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "AU:New South Wales", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "New York", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "IO.BRA:SP", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:Brasil", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
 
 save(tsCAgg, timeStamp, file= "../tsCAgg.RData")
 
 
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 load("./../../../twt.Rdata.RData")
 library(RCurl)
 ftpUpload(what = "../tsCAgg.RData",to = paste(sftURL,"tsCAgg.RData", sep=""))
+#ftpUpload(what = "../app.R",to = paste(sftURL,"app.R", sep=""))
 writeLines(timeStamp, "restart.txt")
 ftpUpload(what = "restart.txt",to = paste(sftURL,"restart.txt", sep=""))  
-source("corona_tweet.R")
+
+
+    source("corona_tweet.R")
 
 #################################################################################################
+
+
+# #last Day
+# x = data.frame(Date = as.Date("2020-05-08"),
+#                Country.Region = "Brazil", 
+#                Confirmed = 145328, #Boletim MS
+#                Deaths = 9897,
+#                Recovered = NA,
+#                Active = NA, Group = "JHU.C") #x$Confirmed - x$Deaths - x$Recovered
+# tsCAgg = rbind(tsCAgg, x)
+#tsCAgg[tsCAgg$Country.Region %in% "Brazil", ]
+
+downloadMSCSV_deprecated <- function(fileName){
+  
+  
+  UFData = read.delim(fileName, header = T, sep = ";", fileEncoding="latin1")
+  UFData$Date =as.Date(as.character(UFData$data), format = , tryFormats = c("%Y-%m-%d","%d/%m/%Y"))
+  #as.Date(as.character(UFData$data), format = "%Y-%m-%d")
+  #as.Date(as.character(UFData$data), format = "%d/%m/%Y") 
+  #as.Date(UFData$data, origin = as.Date("2020-01-30")-43860) 
+  #as.Date(as.character(UFData$data), format = "%d/%m/%Y")
+  UFData$Country.Region = UFData$estado
+  UFData$Confirmed = UFData$casosAcumulados
+  UFData$Deaths = UFData$obitosAcumulados
+  UFData$Recovered = NA
+  UFData$Active = NA
+  UFData$Group =  "BRA.UF"
+  
+  tail(UFData[UFData$Country.Region %in% "BA" ,])
+  ufCAgg = UFData[, c("Date", "Country.Region", "Confirmed", "Deaths", "Recovered", 
+                      "Active", "Group")]
+  ufCAgg$Country.Region = paste("BRA:", ufCAgg$Country.Region, sep = "")
+  tsCAgg = rbind(tsCAgg, ufCAgg)
+  
+  
+  x = aggregate(cbind(Confirmed, Deaths) ~ Date , tsCAgg[ (substr(tsCAgg$Country.Region, 1, 4)) == "BRA:" ,],sum, na.rm=T)
+  x$Country.Region = "BRA:Brasil"
+  x$Recovered = NA
+  x$Active = NA
+  x$Group = "BRA.UF"
+  x = x[, colnames(tsCAgg)]
+  tsCAgg = rbind(tsCAgg, x)
+  
+  
+  return(tsCAgg)
+  
+}
+
+
 
 estSerie_deprecated <- function(b, maxDays, name) {
   x = data.frame(Country.Region = name, 

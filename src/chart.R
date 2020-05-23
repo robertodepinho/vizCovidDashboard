@@ -1,3 +1,119 @@
+winNearAction <- function(tsCAgg, CountryRegion = NA) {
+  tsCAgg = tsCAgg[order(tsCAgg$Date),]
+  
+  if(is.na(CountryRegion)) {
+    dfr = tsCAgg  }
+  else { 
+    dfr = subset(tsCAgg, Country.Region %in% CountryRegion)
+  }
+  
+  dfr = subset(dfr, !is.na(NewCasesAvg))
+  
+  lastc = aggregate(NewCasesAvg ~Country.Region, dfr, tail, 1)
+  maxc = aggregate(NewCasesAvg ~Country.Region, dfr, max, na.rm=T)
+  dfa = merge(lastc, maxc, by = "Country.Region", all = F)
+  
+  dfa$per = dfa$NewCasesAvg.x / dfa$NewCasesAvg.y * 100
+  
+  winners = as.character(subset(dfa, NewCasesAvg.x <= 18 & per < 50)$Country.Region)
+  dfa$status[dfa$Country.Region %in% winners] = "win" 
+  
+  trend <- function(dfr) {
+    m = lm(NewCasesAvg ~ Date, tail(dfr,15))
+    m$coefficients[2]
+  }
+  
+  library(dplyr)
+  dft = dfr %>% 
+    group_by(Country.Region) %>%
+    do(data.frame(val=trend(.)))
+  
+  dfa = merge(dfa, dft, by = "Country.Region", all = F)
+  dfa$days = - dfa$NewCasesAvg.x / dfa$val
+    almost = as.character(subset(dfa, !(status %in% "win") & (val < 0 | per < 25) & days < 21 & per < 50)$Country.Region)
+  dfa$status[dfa$Country.Region %in% almost] = "near"
+  
+  dfa$status[ is.na(dfa$status)] = "action"
+  
+  return(dfa)
+  
+}
+
+
+
+
+chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.ctrl, countryList) {
+  xlimBot = days[1]
+  xlimSup = days[2]
+  ylimSup = cases.y
+  logScale = logscale.ctrl    
+  
+  selVarCol = which(colnames(tsCAgg) %in% gsub(" ", "", selVar))
+  tsCAgg$selVarValue = tsCAgg[,selVarCol]
+  
+  qtdRows = sum( (tsCAgg$selVarValue >= anchorCases), na.rm = T )
+  if(qtdRows < 1) {return(list(FALSE))}
+  
+  #for each country, 1st day with at least anchorNumber
+  anchorDate = aggregate(Date ~ Country.Region, tsCAgg[tsCAgg$selVarValue >= anchorCases,], min)
+  
+  qtdRows = sum( (tsCAgg$Country.Region %in% countryList) & (tsCAgg$selVarValue >= anchorCases) & (tsCAgg$Country.Region %in% anchorDate$Country.Region), na.rm=T)
+  if(qtdRows < 1) {return(list(FALSE))}
+  
+  colnames(anchorDate)[colnames(anchorDate) %in% "Date" ] = "anchorDate"
+  #remove low cases countries
+  tsCAgg = tsCAgg[ tsCAgg$Country.Region %in% anchorDate$Country.Region,]
+  
+  tsCShift = merge(tsCAgg, anchorDate, by = "Country.Region", all.x = T)
+  
+  
+  tsCShift$diffDate = tsCShift$Date - tsCShift$anchorDate
+  maxDays = max(as.numeric(tsCShift$diffDate), na.rm=T) + 1
+  
+  
+  if(logScale){
+    scale_y =   scale_y_log10( labels =  label_dollar(prefix=""), name = paste(selVar, " (log)", sep=" "))
+    listaRows = which(!is.na(tsCShift$selVarValue) &  tsCShift$selVarValue == 0)
+    if(length(listaRows)>0) {
+      tsCShift$selVarValue[listaRows] = tsCShift$selVarValue[listaRows] + 1
+    }
+  } else {
+    scale_y = scale_y_continuous( labels =  label_dollar(prefix=""), name = paste(selVar, " ", sep=" "))
+  }
+  
+  if(anchorCases>0) {
+    labelSubset = tsCShift[ tsCShift$selVarValue <  ylimSup & 
+                              as.numeric(tsCShift$diffDate) <= xlimSup &
+                              tsCShift$Country.Region %in% countryList
+                            ,]
+    maxDiff = aggregate(diffDate ~Country.Region, labelSubset, max)
+    labelSubset = merge(labelSubset, maxDiff, by = "Country.Region")
+    labelSubset = labelSubset[ as.numeric(labelSubset$diffDate.x) == labelSubset$diffDate.y, ]
+    labelSubset$diffDate = labelSubset$diffDate.x
+    labelSubset$cnt.Code = countrycode(sourcevar = labelSubset$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
+    
+  } else {
+    labelSubset = tsCShift[ tsCShift$selVarValue <  ylimSup & 
+                              
+                              tsCShift$Country.Region %in% countryList
+                            ,]
+    maxDate = aggregate(Date ~Country.Region, labelSubset, max)
+    labelSubset = merge(labelSubset, maxDate, by = "Country.Region")
+    labelSubset = labelSubset[ as.numeric(labelSubset$Date.x) == labelSubset$Date.y, ]
+    labelSubset$Date = labelSubset$Date.x
+    labelSubset$cnt.Code = countrycode(sourcevar = labelSubset$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
+    
+  }
+  
+  
+  return(list(TRUE,tsCShift, logScale,labelSubset, scale_y, maxDays))
+  
+}
+
+
+
+
+
 covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList) {
   
   xlimBot = days[1]
@@ -40,8 +156,12 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
     #scale_y_continuous( trans = "log10", limits = c(-1,125), breaks = c(-1, 5))  + 
     theme(legend.position = "none", legend.title =  element_blank()) 
   
-  covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
-                                            x = Inf, y = 1, vjust=0, hjust=1.1)
+  # covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
+  #                                           x = Inf, y = 1, vjust=0, hjust=1.1)
+  # 
+  
+  covidBluePlot =  covidBluePlot + labs(tag = "@robertodepinho") + 
+    theme(plot.tag.position = c(.8, .05), plot.tag = element_text(color="gray50", size=8))
   
   covidBluePlot
   
@@ -49,7 +169,10 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
 }
 
-covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, date_range) {
+covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, 
+                          logscale.ctrl, countryList, date_range, 
+                          showLabels = TRUE, showWinNearAction = FALSE) {
+  
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -76,28 +199,43 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logsc
                            y = rep(labelSubset$selVarValue, nPaises), 
                            label =rep(labelSubset$cnt.Code,nPaises),
                            Country.Region = rep(unique(countryList),each = nrow(labelSubset)))
+  if(showWinNearAction){
+    x = winNearAction(tsCShift, CountryRegion = countryList)
+    tsCShiftList = merge(tsCShiftList, x[, c("Country.Region","status")], by="Country.Region", all.x = TRUE)
+        
+  } else tsCShiftList$status = "darkblue"
   
-  covidBluePlot = ggplot(data=tsCShiftList,aes(x=Date, y=selVarValue,label = Country.Region)) + facet_wrap(~Country.Region) 
-  covidBluePlot = covidBluePlot  + 
-    geom_text_repel(data = serie_label, aes(x=x, y=y,label = label), colour = "gray50", size = 3) 
+  covidBluePlot = ggplot(data=tsCShiftList,aes(x=Date, y=selVarValue,
+                                               label = Country.Region,
+                                               colour = status)) + facet_wrap(~Country.Region) 
+  
+  if(showLabels) { 
+    covidBluePlot = covidBluePlot  + 
+      geom_text_repel(data = serie_label, aes(x=x, y=y,label = label), colour = "gray50", size = 3) 
+  }
+  
   covidBluePlot = covidBluePlot  + 
     geom_line(size = 1, data = serie_2, aes(x=x, y=y, group = cnt), colour = "gray") 
   
   
-   covidBluePlot = covidBluePlot  + geom_point(size = 1) 
-   covidBluePlot = covidBluePlot  + geom_line(size = 1, colour = "darkblue") 
+  covidBluePlot = covidBluePlot  + geom_point(size = 1) 
+  covidBluePlot = covidBluePlot  + geom_line(size = 1) 
   # covidBluePlot = covidBluePlot  
-   covidBluePlot = covidBluePlot  + coord_cartesian(ylim = c(1,ylimSup)) 
-   covidBluePlot = covidBluePlot  + scale_color_discrete() 
-   covidBluePlot = covidBluePlot  + scale_y + theme(legend.position = "none", legend.title =  element_blank()) 
-   
-   covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
-                                             x = max(tsCShiftList$Date, na.rm=T), y = 1, vjust=0, hjust=1.1)
- 
-   covidBluePlot = covidBluePlot  + scale_x_date(date_breaks = "1 month", date_labels = "%b", limits = date_range)
+  covidBluePlot = covidBluePlot  + coord_cartesian(ylim = c(1,ylimSup)) 
+  covidBluePlot = covidBluePlot  + scale_color_manual(breaks = c("win", "near", "action", "darkblue"),
+                                                        values =  c("darkgreen", "orange", "red", "darkblue")) 
+  covidBluePlot = covidBluePlot  + scale_y + theme(legend.position = "none", legend.title =  element_blank()) 
   
-   return(covidBluePlot)
-   
+  # covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
+  #                                           x = max(tsCShiftList$Date, na.rm=T), y = 1, vjust=0, hjust=1.1)
+  # 
+  covidBluePlot =  covidBluePlot + labs(tag = "@robertodepinho") + 
+    theme(plot.tag.position = c(.8, .05), plot.tag = element_text(color="gray50", size=8))
+  
+  covidBluePlot = covidBluePlot  + scale_x_date(date_breaks = "1 month", date_labels = "%b", limits = date_range)
+  
+  return(covidBluePlot)
+  
 }
 
 

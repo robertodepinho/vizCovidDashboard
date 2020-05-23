@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.httr-oauth
 google-analytics.html
 data-update/csv_how
 data-update/png_how
@@ -13,3 +14,6 @@ data-update/time_series_19-covid-Deaths_US_last.csv
 data-update/time_series_19-covid-Recovered_US_last.csv
 data-update/corona_tweet.R
 data-update/.Rhistory
+data-update/.httr-oauth
+data-update/sandbox.R
+sandbox.R
