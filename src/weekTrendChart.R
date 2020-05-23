@@ -1,10 +1,76 @@
 
+deathTrend <- function(tsCAgg, countryList = c("Brazil", "Spain", "Italy", "France", "United Kingdom"),
+                       varSel = "Deaths", 
+                       varSelAvg = "Deaths", days = 15, ahead = 15) {
+  
+  
+  tsCAgg = tsCAgg[order(tsCAgg$Date, tsCAgg$Country.Region),]
+  dfwl = tail(tsCAgg[tsCAgg$Country.Region %in% countryList, 
+                     c("Date", "Country.Region", "NewCases","NewCasesAvg", "NewDeaths","NewDeathsAvg", "Deaths")], 
+              days * length(countryList))
+  
+  
+  dfcr = data.frame()
+  for(cr in countryList){
+    dfw = subset(dfwl,Country.Region %in% cr)
+    dfw = dfw[order(dfw$Date),]
+    dfw$d = as.numeric(dfw$Date - dfw$Date[1] + 1)
+    dfw$Value = dfw[, varSel]
+    dfw$ValueAvg = dfw[, varSelAvg]
+    m = lm(ValueAvg ~d, dfw)
+    for(i in 1:ahead){
+      proj = dfw[(i+days-1),]
+      proj$Date = proj$Date+1; proj$d = proj$d +1
+      proj[,3:7] = NA; proj[,9:10] = NA
+      dfw = rbind(dfw, proj)
+    }
+    #dfw$linear = dfw$ValueAvg[days] + (dfw$d-median(1:days))*m$coefficients[2]
+    dfw$linear = predict(m, dfw)
+    
+    m =lm(log(ValueAvg) ~ d, dfw[1:days,])
+    exps = sum(exp( 1:(days-1) *  m$coefficients[2])) 
+    x1 = log( days * dfw$ValueAvg[days] /  (exps + 1) ) - m$coefficients[2] 
+    
+    #dfw$expo = exp(x1) * exp(dfw$d*m$coefficients[2])  #adjust do last day moving average
+    dfw$expo = exp(predict(m, dfw))
+
+    #print(dfw[, c("Date", "Country.Region", "d", "Value", "ValueAvg", "linear", "expo")], row.names = F, )
+    dfcr = rbind(dfcr,dfw)
+    
+  }
+  
+  
+  library(ggplot2)
+  library(scales)
+  covidPlot = ggplot(data=dfcr) 
+  covidPlot = covidPlot + aes(x=Date, y=Value, color = Country.Region) 
+  covidPlot = covidPlot  + geom_point(size = 1) 
+  covidPlot = covidPlot  + geom_line(size = 1, data = dfcr , 
+                                     aes(x=Date, y=expo, linetype = "expo"), 
+                                     
+                                     show.legend = TRUE ) 
+  covidPlot = covidPlot  + geom_line(size = 1, data = dfcr , 
+                                     aes(x=Date, y=linear, linetype = "linear"), 
+                                     show.legend = TRUE ) 
+  covidPlot = covidPlot  + geom_line(size = 1, data = dfcr , 
+                                     aes(x=Date, y=ValueAvg, linetype = "movel"), 
+                                     
+                                     show.legend = TRUE ) 
+  covidPlot = covidPlot  +  theme_bw()
+  covidPlot = covidPlot  + scale_y_continuous(name=varSel, labels =  label_comma()) + xlab("Date")
+  covidPlot = covidPlot  + theme(legend.position =  "bottom", legend.title =  element_blank()) 
+  covidPlot = covidPlot  + scale_x_date(date_breaks = "1 week" , date_labels = "%d-%b", 
+                                        date_minor_breaks = "1 day") 
+  #covidPlot
+  return(covidPlot)
+  
+}
 
 
 
 weekTrendChart <- function(tsCAgg, CountryRegion = "BRA:Brasil",
-                          varSel = "NewCases", 
-                          varSelAvg = "NewCasesAvg", days = 7) {
+                           varSel = "NewCases", 
+                           varSelAvg = "NewCasesAvg", days = 7) {
   
   
   tsCAgg = tsCAgg[order(tsCAgg$Date),]
@@ -43,7 +109,7 @@ weekTrendChart <- function(tsCAgg, CountryRegion = "BRA:Brasil",
   # 
   
   exps = sum(exp( 1:(days-1) *  m$coefficients[2])) 
-    
+  
   x1 = log( days * dfw$ValueAvg[days] /  (exps + 1) ) - m$coefficients[2] 
   
   exp(x1)

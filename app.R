@@ -47,10 +47,8 @@ $(document).ready(function() {
 "
 
 getCountryChoices <- function(tsCAgg) {
-  countryChoices = aggregate( Confirmed ~  Country.Region +  Group, tsCAgg, max, na.rm=T)
+  countryChoices = aggregate( Confirmed ~  Country.Region +  Group + cnt.Code, tsCAgg, max, na.rm=T)
   countryChoices = countryChoices[ order(as.character(countryChoices$Country.Region), decreasing = F),]
-  countryChoices$cnt.Code = countrycode(sourcevar = countryChoices$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
-  countryChoices$cnt.Code[countryChoices$cnt.Code == " " ]=  countryChoices$Country.Region[countryChoices$cnt.Code == " " ]  
   return(countryChoices)
 }
 
@@ -58,7 +56,6 @@ getCountryChoices <- function(tsCAgg) {
 
 ########################################## SETUP ###########################################
 load("tsCAgg.RData")
-tsCAgg$cnt.Code = countrycode(sourcevar = tsCAgg$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
 dateLimits = c(min(tsCAgg$Date, na.rm=T)-1, max(tsCAgg$Date, na.rm=T)+1)
 
 backgroundList = c("BRA:Brasil", "Italy", "Japan", "Korea, South", "France", "US", "China", "Mexico", "Portugal")
@@ -231,11 +228,8 @@ ui <- fluidPage( theme = "united.min.css",
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-  
-  #load("tsCAgg.RData")
-  
-  
-  
+
+
   output$covidPlot <- renderPlot({
     
     toListen <- reactive({
@@ -255,9 +249,6 @@ server <- function(input, output, session) {
       }
       return()
     } )
-    
-    
-    
     
     observeEvent(input$cases.y,  {
       delta = 10^3
@@ -316,7 +307,7 @@ server <- function(input, output, session) {
     }
     
     #prepare data
-    listP = chartDataPrepare(input$var_ctrl,tsCAgg, anchorCases, input$days, casesValue, input$logscale, countryList)
+    listP = chartDataPrepare(input$var_ctrl,tsCAgg, anchorCases, input$days, casesValue, input$logscale, countryList, backgroundList)
     
     if(!listP[[1]]) {
       g = ggplot(data.frame(x =c(0,100), y = c(0,100)), aes(x= x, y= y)) + 

@@ -259,6 +259,12 @@ newCasesDeaths <- function() {
   
   tsCAgg = as.data.frame(tsCAgg)
   
+  tsCAgg$cnt.Code = countrycode(sourcevar = tsCAgg$Country.Region, origin = "country.name", destination = "iso2c", nomatch = " ")
+  tsCAgg$cnt.Code[tsCAgg$cnt.Code == " " ]=  tsCAgg$Country.Region[tsCAgg$cnt.Code == " " ]
+  tsCAgg$cnt.Code = factor(tsCAgg$cnt.Code)
+  
+  
+  
   return(data.frame(tsCAgg))
 }
 
@@ -341,8 +347,8 @@ tsCAgg = prepareDataJHU.Regions(tsCAgg)
 tsCAgg = prepareData.US(tsCAgg)
 
 
-#fileName = "~/Downloads/HIST_PAINEL_COVIDBR_19mai2020.xlsx" 
-#fileName.csv = "HIST_PAINEL_COVIDBR_19mai2020.csv" 
+fileName = "~/Downloads/HIST_PAINEL_COVIDBR_22mai2020.xlsx" 
+fileName.csv = "HIST_PAINEL_COVIDBR_22mai2020.csv" 
 fileName = paste("~/Downloads/HIST_PAINEL_COVIDBR_", format(Sys.time(),"%d%b%Y"), ".xlsx", sep = "") #"%Y%m%d"
 fileName.csv = paste("HIST_PAINEL_COVIDBR_", format(Sys.time(),"%d%b%Y"), ".csv", sep = "")
 

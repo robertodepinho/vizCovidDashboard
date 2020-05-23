@@ -39,32 +39,32 @@ winNearAction <- function(tsCAgg, CountryRegion = NA) {
   
 }
 
-
-
-
-chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.ctrl, countryList) {
+chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.ctrl, countryList, backgroundList) {
   xlimBot = days[1]
   xlimSup = days[2]
   ylimSup = cases.y
   logScale = logscale.ctrl    
   
-  selVarCol = which(colnames(tsCAgg) %in% gsub(" ", "", selVar))
-  tsCAgg$selVarValue = tsCAgg[,selVarCol]
+  df = subset(tsCAgg, Country.Region %in% countryList |Country.Region %in% backgroundList  )
   
-  qtdRows = sum( (tsCAgg$selVarValue >= anchorCases), na.rm = T )
+  selVarCol = which(colnames(df) %in% gsub(" ", "", selVar))
+  df$selVarValue = df[,selVarCol]
+  
+  
+  qtdRows = sum( (df$selVarValue >= anchorCases), na.rm = T )
   if(qtdRows < 1) {return(list(FALSE))}
   
   #for each country, 1st day with at least anchorNumber
-  anchorDate = aggregate(Date ~ Country.Region, tsCAgg[tsCAgg$selVarValue >= anchorCases,], min)
+  anchorDate = aggregate(Date ~ Country.Region, df[df$selVarValue >= anchorCases,], min)
   
-  qtdRows = sum( (tsCAgg$Country.Region %in% countryList) & (tsCAgg$selVarValue >= anchorCases) & (tsCAgg$Country.Region %in% anchorDate$Country.Region), na.rm=T)
+  qtdRows = sum( (df$Country.Region %in% countryList) & (df$selVarValue >= anchorCases) & (df$Country.Region %in% anchorDate$Country.Region), na.rm=T)
   if(qtdRows < 1) {return(list(FALSE))}
   
   colnames(anchorDate)[colnames(anchorDate) %in% "Date" ] = "anchorDate"
   #remove low cases countries
-  tsCAgg = tsCAgg[ tsCAgg$Country.Region %in% anchorDate$Country.Region,]
+  df = df[ df$Country.Region %in% anchorDate$Country.Region,]
   
-  tsCShift = merge(tsCAgg, anchorDate, by = "Country.Region", all.x = T)
+  tsCShift = merge(df, anchorDate, by = "Country.Region", all.x = T)
   
   
   tsCShift$diffDate = tsCShift$Date - tsCShift$anchorDate
