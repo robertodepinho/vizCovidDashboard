@@ -346,9 +346,11 @@ tsCAgg = prepareData()
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
 tsCAgg = prepareData.US(tsCAgg)
 
+#Ontem
+#fileName = "~/Downloads/HIST_PAINEL_COVIDBR_24mai2020.xlsx" 
+fileName.csv = paste("HIST_PAINEL_COVIDBR_", format(Sys.Date()-1,"%d%b%Y"), ".csv", sep = "")
 
-fileName = "~/Downloads/HIST_PAINEL_COVIDBR_22mai2020.xlsx" 
-fileName.csv = "HIST_PAINEL_COVIDBR_22mai2020.csv" 
+#Hoje
 fileName = paste("~/Downloads/HIST_PAINEL_COVIDBR_", format(Sys.time(),"%d%b%Y"), ".xlsx", sep = "") #"%Y%m%d"
 fileName.csv = paste("HIST_PAINEL_COVIDBR_", format(Sys.time(),"%d%b%Y"), ".csv", sep = "")
 
@@ -358,7 +360,6 @@ command = paste("libreoffice --headless --convert-to csv ",
 system(command, wait = TRUE)
 
 
-#fileName = "~/Downloads/arquivo_geral.csv"
 tsCAgg = downloadMSCSV(fileName.csv)
 tsCAgg = downloadBrasil.io()
 
@@ -378,7 +379,7 @@ tail(tsCAgg[tsCAgg$Country.Region %in% "CT-BA:Salvador", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "AU:New South Wales", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "New York", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "IO.BRA:SP", ])
-tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:SP", ])
+tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:BA", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "BRA:Brasil", ])
 tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
 
