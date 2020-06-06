@@ -15,6 +15,8 @@
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
+get_last_date_brasilIo()
+
 source("../src/updateFunc.R")
 
 

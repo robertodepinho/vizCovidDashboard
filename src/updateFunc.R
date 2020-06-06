@@ -60,13 +60,24 @@ downloadBrasil.io <- function() {
 }
 
 
-brasilIoApi <- function() {
+get_last_date_brasilIo <- function(per = 80) {
   library(httr); library(jsonlite)
-  source_url = "https://brasil.io/api/dataset/covid19/caso/data?is_last=True&place_type=state"
+  source_url = "https://brasil.io/api/dataset/covid19/caso/data"  #"?is_last=True&place_type=state"
   
-  get_response <- GET(source_url)
+  request <- GET(source_url, query = list(
+    is_last  = "True",
+    place_type = "state"))
+  response <- content(request, as = "text", encoding = "UTF-8")
+  response_list = fromJSON(response, flatten = TRUE) 
+  results = response_list[["results"]]
   
-  
+  pop_tot = sum(results$estimated_population_2019)
+  pop_by_date = aggregate(estimated_population_2019 ~date, results, sum)
+  pop_by_date = pop_by_date[ order(pop_by_date$date, decreasing = T),]
+  pop_by_date$coverage = cumsum(pop_by_date$estimated_population_2019) / pop_tot *100
+  print(pop_by_date)
+  return(max(pop_by_date$date[pop_by_date$coverage > per]) )
+
 }
 
 preparaBrasil.io <- function(tsCAgg){
