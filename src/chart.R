@@ -1,3 +1,6 @@
+
+
+
 winNearAction <- function(tsCAgg, CountryRegion = NA) {
   tsCAgg = tsCAgg[order(tsCAgg$Date),]
   
@@ -171,7 +174,8 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
 
 covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, 
                           logscale.ctrl, countryList, date_range, 
-                          showLabels = TRUE, showWinNearAction = FALSE) {
+                          showLabels = TRUE, showWinNearAction = FALSE,
+                          showBack = TRUE, scaleFree = FALSE) {
   
   
   xlimBot = days[1]
@@ -207,21 +211,29 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y,
   
   covidBluePlot = ggplot(data=tsCShiftList,aes(x=Date, y=selVarValue,
                                                label = Country.Region,
-                                               colour = status)) + facet_wrap(~Country.Region) 
+                                               colour = status)) 
+  if(scaleFree) {
+  covidBluePlot = covidBluePlot  + facet_wrap(~Country.Region, scales = "free") 
+  } else {
+    covidBluePlot = covidBluePlot  + facet_wrap(~Country.Region) 
+  }
   
   if(showLabels) { 
     covidBluePlot = covidBluePlot  + 
       geom_text_repel(data = serie_label, aes(x=x, y=y,label = label), colour = "gray50", size = 3) 
   }
   
+  if(showBack) {
   covidBluePlot = covidBluePlot  + 
     geom_line(size = 1, data = serie_2, aes(x=x, y=y, group = cnt), colour = "gray") 
+  }
   
-  
-  covidBluePlot = covidBluePlot  + geom_point(size = 1) 
+  #covidBluePlot = covidBluePlot  + geom_point(size = 1) 
   covidBluePlot = covidBluePlot  + geom_line(size = 1) 
   # covidBluePlot = covidBluePlot  
-  covidBluePlot = covidBluePlot  + coord_cartesian(ylim = c(1,ylimSup)) 
+  if(!scaleFree) {
+   covidBluePlot = covidBluePlot  + coord_cartesian(ylim = c(1,ylimSup)) 
+  }
   covidBluePlot = covidBluePlot  + scale_color_manual(breaks = c("win", "near", "action", "darkblue"),
                                                         values =  c("darkgreen", "orange", "red", "darkblue")) 
   covidBluePlot = covidBluePlot  + scale_y + theme(legend.position = "none", legend.title =  element_blank()) 

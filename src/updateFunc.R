@@ -50,41 +50,53 @@ downloadJHU.US <- function() {
 downloadBrasil.io <- function() {
   
   #source
-  sourceURL =  "https://brasil.io/dataset/covid19/caso?format=csv"
+  #sourceURL =  "https://brasil.io/dataset/covid19/caso?format=csv"
+  sourceURL = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
   
   #Live file with download
-  destFile = "./csv_how/Brasil.ioCaso_last.csv"
+  destFile = "./csv_how/Brasil.ioCaso_last.csv.gz"
   download.file(sourceURL, destfile = destFile, method = "libcurl")
+  
+}
+
+
+brasilIoApi <- function() {
+  library(httr); library(jsonlite)
+  source_url = "https://brasil.io/api/dataset/covid19/caso/data?is_last=True&place_type=state"
+  
+  get_response <- GET(source_url)
+  
   
 }
 
 preparaBrasil.io <- function(tsCAgg){
   
-  
-  df = read.csv("./csv_how/Brasil.ioCaso_last.csv")
+  zz=gzfile("./csv_how/Brasil.ioCaso_last.csv.gz",'rt')  
+  df = read.csv(zz)
+  close(zz)
   UFData = df[ df$place_type %in% "state",]
   UFData$Date = as.Date(as.character(UFData$date)) 
   UFData$Country.Region = UFData$state
-  UFData$Confirmed = UFData$confirmed
-  UFData$Deaths = UFData$deaths
+  UFData$Confirmed = UFData$last_available_confirmed
+  UFData$Deaths = UFData$last_available_deaths
   UFData$Recovered = NA
   UFData$Active = NA
-  UFData$Group =  "IO.UF"
+  UFData$Group =  "BRA.UF" # "IO.UF"   
   
   UFData = UFData[ order(UFData$state, UFData$date),]
   
   #UFData[UFData$Country.Region %in% "BA" ,]
   ufCAgg = UFData[, c("Date", "Country.Region", "Confirmed", "Deaths", "Recovered", 
                       "Active", "Group")]
-  ufCAgg$Country.Region = paste("IO.BRA:", ufCAgg$Country.Region, sep = "")
+  ufCAgg$Country.Region = paste("BRA:", ufCAgg$Country.Region, sep = "")  # "IO.BRA:"
   tsCAgg = rbind(tsCAgg, ufCAgg)
   
   
   UFData = df[ df$place_type %in% "city",]
   UFData$Date = as.Date(as.character(UFData$date)) 
   UFData$Country.Region = paste(UFData$state, UFData$city, sep=":")
-  UFData$Confirmed = UFData$confirmed
-  UFData$Deaths = UFData$deaths
+  UFData$Confirmed = UFData$last_available_confirmed
+  UFData$Deaths = UFData$last_available_deaths
   UFData$Recovered = NA
   UFData$Active = NA
   UFData$Group =  "IO.CT"
@@ -96,14 +108,6 @@ preparaBrasil.io <- function(tsCAgg){
                       "Active", "Group")]
   ufCAgg$Country.Region = paste("CT-", ufCAgg$Country.Region, sep = "")
   tsCAgg = rbind(tsCAgg, ufCAgg)
-  
-  x = aggregate(cbind(Confirmed, Deaths) ~ Date , tsCAgg[ (substr(tsCAgg$Country.Region, 1, 7)) == "IO.BRA:" ,],sum, na.rm=T)
-  x$Country.Region = "IO.BRA:Brasil"
-  x$Recovered = NA
-  x$Active = NA
-  x$Group = "IO.UF"
-  x = x[, colnames(tsCAgg)]
-  tsCAgg = rbind(tsCAgg, x)
   
   return(tsCAgg)
   
@@ -270,7 +274,29 @@ newCasesDeaths <- function() {
   return(data.frame(tsCAgg))
 }
 
-
+prepareBraBrasil <- function(tsCAgg) {
+  
+  df = subset(tsCAgg, Group == "BRA.UF")
+  #opção agregado estados
+  x = aggregate(cbind(Confirmed, Deaths) ~ Date , df,sum, na.rm=T)
+  x$Country.Region = "BRA:Brasil"
+  x$Recovered = NA
+  x$Active = NA
+  x$Group = "BRA.UF"   # "IO.UF"
+  x = x[, colnames(tsCAgg)]
+  tsCAgg = rbind(tsCAgg, x)
+  
+  #opção JHU
+  #x = subset(tsCAgg, Group ==  "JHU.C" & Country.Region =="Brazil")
+  #x$Country.Region = "BRA:Brasil"
+  #x$Group = "BRA.UF"   # "IO.UF"
+  #x = x[, colnames(tsCAgg)]
+  #tsCAgg = rbind(tsCAgg, x)
+  
+  return(tsCAgg)
+  
+  
+}
 
 preparaMSCSV <- function(tsCAgg, fileName){
   
