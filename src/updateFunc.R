@@ -10,21 +10,21 @@ downloadJHU <- function() {
   #source
   sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
   #Live file with download
-  destFile = paste("./csv_how/time_series_19-covid-Confirmed_", timeStamp, ".csv", sep = "")
+  destFile = paste("upd/csv_how/time_series_19-covid-Confirmed_", timeStamp, ".csv", sep = "")
   download.file(sourceURL, destfile = destFile, method = "curl")
-  file.copy(destFile, "time_series_19-covid-Confirmed_last.csv", overwrite = TRUE)
+  file.copy(destFile, "upd/time_series_19-covid-Confirmed_last.csv", overwrite = TRUE)
   
   sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
   #Live file with download
-  destFile = paste("./csv_how/time_series_19-covid-Deaths_", timeStamp, ".csv", sep = "")
+  destFile = paste("upd/csv_how/time_series_19-covid-Deaths_", timeStamp, ".csv", sep = "")
   download.file(sourceURL, destfile = destFile, method = "curl")
-  file.copy(destFile, "time_series_19-covid-Deaths_last.csv", overwrite = TRUE)
+  file.copy(destFile, "upd/time_series_19-covid-Deaths_last.csv", overwrite = TRUE)
   
   sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv"
   #Live file with download
-  destFile = paste("./csv_how/time_series_19-covid-Recovered_", timeStamp, ".csv", sep = "")
+  destFile = paste("upd/csv_how/time_series_19-covid-Recovered_", timeStamp, ".csv", sep = "")
   download.file(sourceURL, destfile = destFile, method = "curl")
-  file.copy(destFile, "time_series_19-covid-Recovered_last.csv", overwrite = TRUE)
+  file.copy(destFile, "upd/time_series_19-covid-Recovered_last.csv", overwrite = TRUE)
   
   
 }
@@ -34,15 +34,15 @@ downloadJHU.US <- function() {
   #source
   sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
   #Live file with download
-  destFile = paste("./csv_how/time_series_19-covid-Confirmed_US_", timeStamp, ".csv", sep = "")
+  destFile = paste("upd/csv_how/time_series_19-covid-Confirmed_US_", timeStamp, ".csv", sep = "")
   download.file(sourceURL, destfile = destFile, method = "curl")
-  file.copy(destFile, "time_series_19-covid-Confirmed_US_last.csv", overwrite = TRUE)
+  file.copy(destFile, "upd/time_series_19-covid-Confirmed_US_last.csv", overwrite = TRUE)
   
   sourceURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
   #Live file with download
-  destFile = paste("./csv_how/time_series_19-covid-Deaths_US_", timeStamp, ".csv", sep = "")
+  destFile = paste("upd/csv_how/time_series_19-covid-Deaths_US_", timeStamp, ".csv", sep = "")
   download.file(sourceURL, destfile = destFile, method = "curl")
-  file.copy(destFile, "time_series_19-covid-Deaths_US_last.csv", overwrite = TRUE)
+  file.copy(destFile, "upd/time_series_19-covid-Deaths_US_last.csv", overwrite = TRUE)
 
   
 }
@@ -54,7 +54,7 @@ downloadBrasil.io <- function() {
   sourceURL = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
   
   #Live file with download
-  destFile = "./csv_how/Brasil.ioCaso_last.csv.gz"
+  destFile = "upd/csv_how/Brasil.ioCaso_last.csv.gz"
   download.file(sourceURL, destfile = destFile, method = "libcurl")
   
 }
@@ -71,18 +71,25 @@ get_last_date_brasilIo <- function(per = 80) {
   response_list = fromJSON(response, flatten = TRUE) 
   results = response_list[["results"]]
   
+  pop_by_date = aggregate(estimated_population_2019 ~date, results, length)
+  pop_by_date = pop_by_date[ order(pop_by_date$date, decreasing = T),]
+  print(pop_by_date)
+  
+  
   pop_tot = sum(results$estimated_population_2019)
   pop_by_date = aggregate(estimated_population_2019 ~date, results, sum)
   pop_by_date = pop_by_date[ order(pop_by_date$date, decreasing = T),]
   pop_by_date$coverage = cumsum(pop_by_date$estimated_population_2019) / pop_tot *100
   print(pop_by_date)
+  
+  
   return(max(pop_by_date$date[pop_by_date$coverage > per]) )
 
 }
 
 preparaBrasil.io <- function(tsCAgg){
   
-  zz=gzfile("./csv_how/Brasil.ioCaso_last.csv.gz",'rt')  
+  zz=gzfile("upd/csv_how/Brasil.ioCaso_last.csv.gz",'rt')  
   df = read.csv(zz)
   close(zz)
   UFData = df[ df$place_type %in% "state",]
@@ -126,19 +133,19 @@ preparaBrasil.io <- function(tsCAgg){
 
 prepareData <- function() {
   
-  tsConfirmed = read.csv("time_series_19-covid-Confirmed_last.csv")
+  tsConfirmed = read.csv("upd/time_series_19-covid-Confirmed_last.csv")
   tsC = reshape2::melt(tsConfirmed, id.vars=c("Province.State", "Country.Region", "Lat" ,"Long"  ))
   colnames(tsC)[colnames(tsC) %in% "value" ] = "Confirmed"
   tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
   tsCAgg = aggregate( Confirmed ~ Date + Country.Region, tsC, sum, na.rm = T)
   
-  tsDeaths = read.csv("time_series_19-covid-Deaths_last.csv")
+  tsDeaths = read.csv("upd/time_series_19-covid-Deaths_last.csv")
   tsC = reshape2::melt(tsDeaths, id.vars=c("Province.State", "Country.Region", "Lat" ,"Long"  ))
   colnames(tsC)[colnames(tsC) %in% "value" ] = "Deaths"
   tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
   tsCAggD = aggregate( Deaths ~ Date + Country.Region, tsC, sum, na.rm = T)
   
-  tsC = read.csv("time_series_19-covid-Recovered_last.csv")
+  tsC = read.csv("upd/time_series_19-covid-Recovered_last.csv")
   tsC = reshape2::melt(tsC, id.vars=c("Province.State", "Country.Region", "Lat" ,"Long"  ))
   colnames(tsC)[colnames(tsC) %in% "value" ] = "Recovered"
   tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
@@ -159,7 +166,7 @@ prepareData <- function() {
 
 prepareData.US <- function(tsCAggPar) {
   
-  tsConfirmed = read.csv("time_series_19-covid-Confirmed_US_last.csv")
+  tsConfirmed = read.csv("upd/time_series_19-covid-Confirmed_US_last.csv")
   tsC = reshape2::melt(tsConfirmed, id.vars=
                          c("UID", "iso2", "iso3", "code3", "FIPS", "Admin2", "Province_State", 
                            "Country_Region", "Lat", "Long_", "Combined_Key"))
@@ -167,7 +174,7 @@ prepareData.US <- function(tsCAggPar) {
   tsC$Date = as.Date(as.character(tsC$variable), format = "X%m.%d.%y")
   tsCAgg = aggregate( Confirmed ~ Date + Province_State, tsC, sum, na.rm = T)
   
-  tsDeaths = read.csv("time_series_19-covid-Deaths_US_last.csv")
+  tsDeaths = read.csv("upd/time_series_19-covid-Deaths_US_last.csv")
   tsC = reshape2::melt(tsDeaths, id.vars= 
                          c("UID", "iso2", "iso3", "code3", "FIPS", "Admin2", "Province_State", 
                            "Country_Region", "Lat", "Long_", "Combined_Key"))
@@ -203,7 +210,7 @@ prepareData.US <- function(tsCAggPar) {
 
 prepareDataJHU.Regions <- function(tsCAgg) {
   
-  tsConfirmed = read.csv("time_series_19-covid-Confirmed_last.csv")
+  tsConfirmed = read.csv("upd/time_series_19-covid-Confirmed_last.csv")
   ts = reshape2::melt(tsConfirmed, id.vars=c("Province.State", "Country.Region", "Lat" ,"Long"  ))
   colnames(ts)[colnames(ts) %in% "value" ] = "Confirmed"
   ts$Date = as.Date(as.character(ts$variable), format = "X%m.%d.%y")
@@ -213,7 +220,7 @@ prepareDataJHU.Regions <- function(tsCAgg) {
   tsC = ts
   
   
-  tsDeaths = read.csv("time_series_19-covid-Deaths_last.csv")
+  tsDeaths = read.csv("upd/time_series_19-covid-Deaths_last.csv")
   ts = reshape2::melt(tsDeaths, id.vars=c("Province.State", "Country.Region", "Lat" ,"Long"  ))
   colnames(ts)[colnames(ts) %in% "value" ] = "Deaths"
   ts$Date = as.Date(as.character(ts$variable), format = "X%m.%d.%y")
@@ -223,7 +230,7 @@ prepareDataJHU.Regions <- function(tsCAgg) {
   tsD = ts
   
   
-  tsRecovered = read.csv("time_series_19-covid-Recovered_last.csv")
+  tsRecovered = read.csv("upd/time_series_19-covid-Recovered_last.csv")
   ts = reshape2::melt(tsRecovered, id.vars=c("Province.State", "Country.Region", "Lat" ,"Long"  ))
   colnames(ts)[colnames(ts) %in% "value" ] = "Recovered"
   ts$Date = as.Date(as.character(ts$variable), format = "X%m.%d.%y")

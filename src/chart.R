@@ -1,6 +1,4 @@
-
-
-
+source("src/theme_black.R")
 winNearAction <- function(tsCAgg, CountryRegion = NA) {
   tsCAgg = tsCAgg[order(tsCAgg$Date),]
   
@@ -321,7 +319,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
     scale_y 
   #scale_y_continuous( trans = "log10", limits = c(-1,125), breaks = c(-1, 5))  + 
   
-  covidColorPlot = covidColorPlot  +  theme_bw()
+  covidColorPlot = covidColorPlot  +  theme_jf()
   covidColorPlot = covidColorPlot  + theme(legend.position =  "top", legend.title =  element_blank()) 
   
   
@@ -408,7 +406,8 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
     geom_text_repel(data = labelSubset, aes(label = Country.Region)) 
   covidColorPlot = covidColorPlot  + scale_color_discrete() 
   covidColorPlot = covidColorPlot  + scale_y
-  covidColorPlot = covidColorPlot  +  theme_bw()
+  covidColorPlot = covidColorPlot  +  theme_jf() 
+    
   covidColorPlot = covidColorPlot  + theme(legend.position =  "top", legend.title =  element_blank()) 
   
   if("Marker" %in% mark.ctrl) {
