@@ -3,8 +3,6 @@ library(curl)
 library(dplyr)
 library(countrycode)
 
-
-
 downloadJHU <- function() {
   
   #source
@@ -92,7 +90,25 @@ preparaBrasil.io <- function(tsCAgg){
   zz=gzfile("upd/csv_how/Brasil.ioCaso_last.csv.gz",'rt')  
   df = read.csv(zz)
   close(zz)
+  
+  
   UFData = df[ df$place_type %in% "state",]
+  
+  #opção agregado estados
+  x = aggregate(cbind(last_available_confirmed, last_available_deaths) ~ date , df,sum, na.rm=T)
+  x$Date = as.Date(as.character(x$date)) 
+  x$Country.Region = x$state
+  x$Confirmed = x$last_available_confirmed
+  x$Deaths = x$last_available_deaths
+  x$Country.Region = "BRA:Brasil"
+  x$Recovered = NA
+  x$Active = NA
+  x$Group = "BRA.UF"   # "IO.UF"
+  x = x[, colnames(tsCAgg)]
+  tsCAgg = rbind(tsCAgg, x)
+  
+  
+  UFData = subset(df, place_type %in% "state" & is_repeated == "False")
   UFData$Date = as.Date(as.character(UFData$date)) 
   UFData$Country.Region = UFData$state
   UFData$Confirmed = UFData$last_available_confirmed
@@ -110,7 +126,7 @@ preparaBrasil.io <- function(tsCAgg){
   tsCAgg = rbind(tsCAgg, ufCAgg)
   
   
-  UFData = df[ df$place_type %in% "city",]
+  UFData = subset(df, place_type %in% "city" & is_repeated == "False")
   UFData$Date = as.Date(as.character(UFData$date)) 
   UFData$Country.Region = paste(UFData$state, UFData$city, sep=":")
   UFData$Confirmed = UFData$last_available_confirmed
@@ -292,7 +308,7 @@ newCasesDeaths <- function() {
   return(data.frame(tsCAgg))
 }
 
-prepareBraBrasil <- function(tsCAgg) {
+prepareBraBrasil_deprecated <- function(tsCAgg) {
   
   df = subset(tsCAgg, Group == "BRA.UF")
   #opção agregado estados

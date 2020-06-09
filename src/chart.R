@@ -1,4 +1,5 @@
 source("src/theme_black.R")
+
 winNearAction <- function(tsCAgg, CountryRegion = NA) {
   tsCAgg = tsCAgg[order(tsCAgg$Date),]
   
@@ -31,7 +32,7 @@ winNearAction <- function(tsCAgg, CountryRegion = NA) {
   
   dfa = merge(dfa, dft, by = "Country.Region", all = F)
   dfa$days = - dfa$NewCasesAvg.x / dfa$val
-    almost = as.character(subset(dfa, !(status %in% "win") & (val < 0 | per < 25) & days < 21 & per < 50)$Country.Region)
+  almost = as.character(subset(dfa, !(status %in% "win") & (val < 0 | per < 25) & days < 21 & per < 50)$Country.Region)
   dfa$status[dfa$Country.Region %in% almost] = "near"
   
   dfa$status[ is.na(dfa$status)] = "action"
@@ -40,7 +41,9 @@ winNearAction <- function(tsCAgg, CountryRegion = NA) {
   
 }
 
-chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.ctrl, countryList, backgroundList) {
+chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, 
+                             logscale.ctrl, countryList, 
+                             backgroundList, lg = "pt", translation) {
   xlimBot = days[1]
   xlimSup = days[2]
   ylimSup = cases.y
@@ -48,7 +51,12 @@ chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.
   
   df = subset(tsCAgg, Country.Region %in% countryList |Country.Region %in% backgroundList  )
   
+  
+  
   selVarCol = which(colnames(df) %in% gsub(" ", "", selVar))
+  
+  
+  
   df$selVarValue = df[,selVarCol]
   
   
@@ -73,13 +81,13 @@ chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.
   
   
   if(logScale){
-    scale_y =   scale_y_log10( labels =  label_dollar(prefix=""), name = paste(selVar, " (log)", sep=" "))
+    scale_y =   scale_y_log10( labels =  label_dollar(prefix=""), name = paste(translation[[selVar]][[lg]], " (log)", sep=" "))
     listaRows = which(!is.na(tsCShift$selVarValue) &  tsCShift$selVarValue == 0)
     if(length(listaRows)>0) {
       tsCShift$selVarValue[listaRows] = tsCShift$selVarValue[listaRows] + 1
     }
   } else {
-    scale_y = scale_y_continuous( labels =  label_dollar(prefix=""), name = paste(selVar, " ", sep=" "))
+    scale_y = scale_y_continuous( labels =  label_dollar(prefix=""), name = paste(translation[[selVar]][[lg]], " ", sep=" "))
   }
   
   if(anchorCases>0) {
@@ -115,7 +123,9 @@ chartDataPrepare <- function(selVar,tsCAgg,anchorCases, days, cases.y, logscale.
 
 
 
-covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList) {
+covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, 
+                      cases.y, logscale.ctrl, countryList, 
+                      lg = "pt", translation) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -151,11 +161,13 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
     facet_wrap(~Country.Region) + 
     coord_cartesian(xlim=c(xlimBot, xlimSup),  ylim = c(1,ylimSup)) + 
     scale_color_discrete() +
-    scale_x_continuous(name=paste("Days from first day with", anchorCases," or more ", selVar, sep=" ")) +
+    scale_x_continuous(name=paste(translation[['days_from']][[lg]], anchorCases,translation[['or_more']][[lg]], translation[[selVar]][[lg]], sep=" ")) +
     #                     breaks = xlimBot:xlimSup) +
-    scale_y +
-    #scale_y_continuous( trans = "log10", limits = c(-1,125), breaks = c(-1, 5))  + 
-    theme(legend.position = "none", legend.title =  element_blank()) 
+    scale_y 
+  #scale_y_continuous( trans = "log10", limits = c(-1,125), breaks = c(-1, 5))  + 
+  
+  covidBluePlot =  covidBluePlot +  theme_jf()
+  covidBluePlot =  covidBluePlot + theme(legend.position = "none", legend.title =  element_blank()) 
   
   # covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
   #                                           x = Inf, y = 1, vjust=0, hjust=1.1)
@@ -163,6 +175,8 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
   covidBluePlot =  covidBluePlot + labs(tag = "@robertodepinho") + 
     theme(plot.tag.position = c(.8, .05), plot.tag = element_text(color="gray50", size=8))
+  
+  
   
   covidBluePlot
   
@@ -173,7 +187,8 @@ covidBlue <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, logscale.
 covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y, 
                           logscale.ctrl, countryList, date_range, 
                           showLabels = TRUE, showWinNearAction = FALSE,
-                          showBack = TRUE, scaleFree = FALSE) {
+                          showBack = TRUE, scaleFree = FALSE, 
+                          lg = "pt", translation) {
   
   
   xlimBot = days[1]
@@ -204,14 +219,14 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y,
   if(showWinNearAction){
     x = winNearAction(tsCShift, CountryRegion = countryList)
     tsCShiftList = merge(tsCShiftList, x[, c("Country.Region","status")], by="Country.Region", all.x = TRUE)
-        
+    
   } else tsCShiftList$status = "darkblue"
   
   covidBluePlot = ggplot(data=tsCShiftList,aes(x=Date, y=selVarValue,
                                                label = Country.Region,
                                                colour = status)) 
   if(scaleFree) {
-  covidBluePlot = covidBluePlot  + facet_wrap(~Country.Region, scales = "free") 
+    covidBluePlot = covidBluePlot  + facet_wrap(~Country.Region, scales = "free") 
   } else {
     covidBluePlot = covidBluePlot  + facet_wrap(~Country.Region) 
   }
@@ -222,18 +237,20 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y,
   }
   
   if(showBack) {
-  covidBluePlot = covidBluePlot  + 
-    geom_line(size = 1, data = serie_2, aes(x=x, y=y, group = cnt), colour = "gray") 
+    covidBluePlot = covidBluePlot  + 
+      geom_line(size = 1, data = serie_2, aes(x=x, y=y, group = cnt), colour = "gray") 
   }
   
   #covidBluePlot = covidBluePlot  + geom_point(size = 1) 
   covidBluePlot = covidBluePlot  + geom_line(size = 1) 
   # covidBluePlot = covidBluePlot  
   if(!scaleFree) {
-   covidBluePlot = covidBluePlot  + coord_cartesian(ylim = c(1,ylimSup)) 
+    covidBluePlot = covidBluePlot  + coord_cartesian(ylim = c(1,ylimSup)) 
   }
   covidBluePlot = covidBluePlot  + scale_color_manual(breaks = c("win", "near", "action", "darkblue"),
-                                                        values =  c("darkgreen", "orange", "red", "darkblue")) 
+                                                      values =  c("darkgreen", "orange", "red", "darkblue")) 
+  
+  covidBluePlot =  covidBluePlot +  theme_jf()
   covidBluePlot = covidBluePlot  + scale_y + theme(legend.position = "none", legend.title =  element_blank()) 
   
   # covidBluePlot =  covidBluePlot + annotate("text", label = "@robertodepinho", color= "grey50",
@@ -244,12 +261,17 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y,
   
   covidBluePlot = covidBluePlot  + scale_x_date(date_breaks = "1 month", date_labels = "%b", limits = date_range)
   
+  
+  
   return(covidBluePlot)
   
 }
 
 
-covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl,  backgroundList) {
+covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, 
+                       logscale.ctrl, countryList, mark.ctrl, 
+                       high.ctrl, doublingTime, est.ctrl,  
+                       backgroundList, lg = "pt", translation) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -264,7 +286,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
   covidColorPlot = ggplot(data=tsCShift[tsCShift$Country.Region %in% countryList,]) 
   
-  if("Color" %in% mark.ctrl) {  
+  if(translation[['color']][[lg]] %in% mark.ctrl) {  
     
     covidColorPlot =  covidColorPlot + aes(x=diffDate, y=selVarValue, colour = Country.Region, shape = Country.Region, 
                                            label = Country.Region) 
@@ -273,7 +295,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
                                            label = Country.Region) 
   }
   
-  if("Line Style" %in% mark.ctrl) {  
+  if(translation[['line_style']][[lg]] %in% mark.ctrl) {  
     
     covidColorPlot =  covidColorPlot + aes(linetype = Country.Region) 
   } 
@@ -284,7 +306,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   covidColorPlot =  covidColorPlot + annotate("text", label = "@robertodepinho", color= "grey50",
                                               x = Inf, y = 1, vjust=0, hjust=1.1)
   
-  if("Background Lines" %in% mark.ctrl) {
+  if(translation[['background_lines']][[lg]] %in% mark.ctrl) {
     #x = tsCShift[tsCShift$Group %in% "JHU.C" & !(tsCShift$Country.Region %in%  countryList),]
     x = tsCShift[tsCShift$Country.Region %in%  backgroundList & !(tsCShift$Country.Region %in%  countryList),]
     covidColorPlot = covidColorPlot  + geom_line(size = 1, data = x , 
@@ -293,7 +315,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
                                                  show.legend = FALSE , shape = 1) 
   } 
   
-  if(est.ctrl !="None") {
+  if(est.ctrl !=translation[['none']][[lg]]) {
     b = b = 2^ (1/doublingTime)
     if(logScale){
       fun.l <- function(x) {log(anchorCases * b^(x), 10)}
@@ -303,7 +325,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
     covidColorPlot = covidColorPlot  + stat_function(fun = fun.l, colour = "green")
   }
   
-  if(high.ctrl !="None") {
+  if(high.ctrl !=translation[['none']][[lg]]) {
     covidColorPlot = covidColorPlot  +   
       geom_line(size = 2, data = tsCShift[tsCShift$Country.Region %in%  high.ctrl,], 
                 aes(x=diffDate, y=selVarValue, colour = Country.Region),
@@ -314,7 +336,7 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   covidColorPlot = covidColorPlot  +
     geom_text_repel(data = labelSubset, aes(label = Country.Region)) +
     scale_color_discrete() +
-    scale_x_continuous(name=paste("Days from first day with", anchorCases," or more", selVar, sep=" ") ) +
+    scale_x_continuous(name=paste(translation[['days_from']][[lg]], anchorCases,translation[['or_more']][[lg]], translation[[selVar]][[lg]], sep=" ") ) +
     #                     breaks = xlimBot:xlimSup) +
     scale_y 
   #scale_y_continuous( trans = "log10", limits = c(-1,125), breaks = c(-1, 5))  + 
@@ -324,15 +346,15 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
   
   
-  if("Marker" %in% mark.ctrl) {
+  if(translation[['marker']][[lg]] %in% mark.ctrl) {
     covidColorPlot = covidColorPlot + geom_point(size = 5, data = tsCShift[tsCShift$Country.Region %in%  high.ctrl,], shape = 1,
                                                  aes(x=diffDate, y=selVarValue, colour = Country.Region),
                                                  show.legend = FALSE) +
-      geom_point(size = 3, show.legend = !("Background Lines" %in% mark.ctrl)) 
+      geom_point(size = 3, show.legend = !(translation[['background_lines']][[lg]] %in% mark.ctrl)) 
   }
   
-  if("Line" %in% mark.ctrl) {
-    covidColorPlot = covidColorPlot  + geom_line(size = 1, show.legend = !("Background Lines" %in% mark.ctrl)) 
+  if(translation[['line']][[lg]] %in% mark.ctrl) {
+    covidColorPlot = covidColorPlot  + geom_line(size = 1, show.legend = !(translation[['background_lines']][[lg]] %in% mark.ctrl)) 
   }
   
   
@@ -340,7 +362,11 @@ covidColor <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.
   
 }
 
-covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logscale.ctrl, countryList, mark.ctrl, high.ctrl, doublingTime, est.ctrl, date_range, backgroundList) {
+covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, 
+                           cases.y, logscale.ctrl, countryList, 
+                           mark.ctrl, high.ctrl, doublingTime, 
+                           est.ctrl, date_range, 
+                           backgroundList, lg = "pt", translation) {
   
   xlimBot = days[1]
   xlimSup = days[2]
@@ -353,9 +379,11 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
   scale_y = listP[[5]]
   
   
+  
+  
   covidColorPlot = ggplot(data=tsCShift[tsCShift$Country.Region %in% countryList,]) 
   
-  if("Color" %in% mark.ctrl) {  
+  if(translation[['color']][[lg]] %in% mark.ctrl) {  
     
     covidColorPlot =  covidColorPlot + aes(x=Date, y=selVarValue, colour = Country.Region, shape = Country.Region, 
                                            label = Country.Region) 
@@ -364,10 +392,10 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
                                            label = Country.Region) 
   }
   
-  if("Line Style" %in% mark.ctrl) {  
+  if(translation[['line_style']][[lg]] %in% mark.ctrl) {  
     covidColorPlot =  covidColorPlot + aes(linetype = Country.Region) 
   } 
-  if("Line" %in% mark.ctrl) {
+  if(translation[['line']][[lg]] %in% mark.ctrl) {
     covidColorPlot = covidColorPlot  + geom_line(size = 1) 
   }
   
@@ -375,7 +403,10 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
   covidColorPlot =  covidColorPlot +coord_cartesian(xlim=date_range,  ylim = c(1,ylimSup))  
   covidColorPlot =  covidColorPlot + annotate("text", label = "@robertodepinho", color= "grey50",
                                               x = max(tsCAgg$Date, na.rm=T), y = 1, vjust=0, hjust=1.1)
-  if("Background Lines" %in% mark.ctrl) {
+  
+  
+  
+  if(translation[['background_lines']][[lg]] %in% mark.ctrl) {
     x = tsCShift[tsCShift$Country.Region %in%  backgroundList & !(tsCShift$Country.Region %in%  countryList),]
     covidColorPlot = covidColorPlot  + geom_line(size = 1, data = x , 
                                                  aes(x=Date, y=selVarValue), colour = "grey90", 
@@ -383,7 +414,7 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
                                                  show.legend = FALSE ) 
   } 
   
-  if(est.ctrl !="None") {
+  if(est.ctrl !=translation[['none']][[lg]]) {
     b = b = 2^ (1/doublingTime)
     minX = as.numeric(min(tsCAgg$Date, na.rm=T))
     if(logScale){
@@ -394,7 +425,7 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
     covidColorPlot = covidColorPlot  + stat_function(fun = fun.l, colour = "green")
   }
   
-  if(high.ctrl !="None") {
+  if(high.ctrl !=translation[['none']][[lg]]) {
     covidColorPlot = covidColorPlot  +   
       geom_line(size = 2, data = tsCShift[tsCShift$Country.Region %in%  high.ctrl,], 
                 aes(x=Date, y=selVarValue, colour = Country.Region),
@@ -407,14 +438,14 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days, cases.y, logsc
   covidColorPlot = covidColorPlot  + scale_color_discrete() 
   covidColorPlot = covidColorPlot  + scale_y
   covidColorPlot = covidColorPlot  +  theme_jf() 
-    
+  
   covidColorPlot = covidColorPlot  + theme(legend.position =  "top", legend.title =  element_blank()) 
   
-  if("Marker" %in% mark.ctrl) {
+  if(translation[['marker']][[lg]] %in% mark.ctrl) {
     covidColorPlot = covidColorPlot + geom_point(size = 5, data = tsCShift[tsCShift$Country.Region %in%  high.ctrl,], shape = 1,
                                                  aes(x=Date, y=selVarValue, colour = Country.Region),
                                                  show.legend = FALSE) +
-      geom_point(size = 3, show.legend = !("Background Lines" %in% mark.ctrl)) 
+      geom_point(size = 3, show.legend = !(translation[['background_lines']][[lg]] %in% mark.ctrl)) 
   }
   
   

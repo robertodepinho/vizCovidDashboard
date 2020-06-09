@@ -15,6 +15,7 @@ library(shiny)
 source("./est/estima.R")
 source("./src/chart.R")
 
+
 # logifySlider javascript function
 JS.logify <-
   "
@@ -55,11 +56,35 @@ getCountryChoices <- function(tsCAgg) {
 
 
 ########################################## SETUP ###########################################
+
+load("lg.bin")
+
 load("tsCAgg.RData")
+load("upd/translation.bin")
 dateLimits = c(min(tsCAgg$Date, na.rm=T)-1, max(tsCAgg$Date, na.rm=T)+1)
 
 backgroundList = c("BRA:Brasil", "Italy", "Japan", "Korea, South", "France", "US", "China", "Mexico", "Portugal")
 countryList = c("BRA:Brasil", "BRA:SP", "BRA:RJ", "BRA:AM", "BRA:BA")
+
+choices_style = list(1,2)
+names(choices_style) = c(translation[["single_chart"]][[lg]] , translation[["grid_charts"]][[lg]])
+
+choices_var = c("Confirmed",
+                "Deaths",
+                "Recovered",
+                "Active",
+                "NewCases",
+                "NewDeaths",
+                "NewCasesAvg",
+                "NewDeathsAvg")
+names(choices_var) = c(translation[["Confirmed"]][[lg]], 
+                       translation[["Deaths"]][[lg]], 
+                       translation[["Recovered"]][[lg]], 
+                       translation[["Active"]][[lg]], 
+                       translation[["NewCases"]][[lg]], 
+                       translation[["NewDeaths"]][[lg]], 
+                       translation[["NewCasesAvg"]][[lg]], 
+                       translation[["NewDeathsAvg"]][[lg]])
 
 countryChoices = getCountryChoices(tsCAgg)
 ###############################################################################################
@@ -69,14 +94,14 @@ countryChoices = getCountryChoices(tsCAgg)
 ######################################## UI ###################################################
 
 # Define UI for application that draws a histogram
-ui <- fluidPage( theme = "united.min.css",
+ui <- fluidPage( theme = "sandstone.min.css",
                  tags$head(tags$script(HTML(JS.logify))),
                  tags$head(tags$script(HTML(JS.onload))),
                  # Application title
-                 titlePanel("vizCovid Dashboard:  Confirmed Cases, Deaths, Recovered"),
+                 titlePanel(translation[['title']][[lg]] ),
                  tags$head(includeHTML(("google-analytics.html"))),
                  tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
-                 tags$a(href="#about", "about"),
+                 tags$a(href="#about", translation[['about']][[lg]] ),
                  
                  
                  plotOutput("covidPlot", height = "600px"),
@@ -85,67 +110,73 @@ ui <- fluidPage( theme = "united.min.css",
                  
                  fluidRow(
                    column(3,
-                          selectInput("var_ctrl", "Variable",
-                                      choices = c("Confirmed", "Deaths", "Recovered", "Active", "New Cases", "New Deaths", "New Cases Avg", "New Deaths Avg"),
-                                      selected = "New Cases Avg"),
-                          radioButtons("date_ctrl", "Use actual date?",
-                                       choices= c("Yes", "No"),
-                                       selected= "Yes"),
+                          selectInput("var_ctrl", translation[["Variable"]][[lg]],
+                                      choices = choices_var,
+                                      selected = "NewCasesAvg"),
+                          radioButtons("date_ctrl", translation[["use_date_q"]][[lg]],
+                                       choices= c(translation[["Yes"]][[lg]], translation[["No"]][[lg]]),
+                                       selected= translation[["Yes"]][[lg]]),
                           conditionalPanel(
-                            condition = "input.date_ctrl == 'No'",
+                            condition = paste("input.date_ctrl == '",translation[["No"]][[lg]],"'",sep=""),
                             sliderInput("anchor",
-                                        "Number of occurences to set day 0 at:",
+                                        translation[["anchor_q"]][[lg]],
                                         min = 0,
                                         max = 5000,
                                         value = 100),
-                          sliderInput("days",
-                                      "Days:",
-                                      min = -15,
-                                      max = 365,
-                                      value = c(-1,90))),
+                            sliderInput("days",
+                                        translation[["days_q"]][[lg]],
+                                        min = -15,
+                                        max = 365,
+                                        value = c(-1,90))),
                           conditionalPanel(
-                            condition = "input.date_ctrl == 'Yes'",
+                            condition = paste("input.date_ctrl == '",translation[["Yes"]][[lg]],"'",sep=""),
                             sliderInput("date_range",
-                                        "Dates:",
+                                        translation[["date_range_q"]][[lg]],
                                         min = dateLimits[1],
                                         max = dateLimits[2],
                                         value = c(Sys.Date()-60,dateLimits[2]))),
-                          checkboxInput("logscale", "Log (Value)", value = TRUE),
+                          
+                          checkboxInput("logscale", translation[["logscale_q"]][[lg]], value = TRUE),
+                          
                           conditionalPanel(
                             condition = "input.logscale",
-                            sliderInput("log_slider", "Value(log):",
+                            sliderInput("log_slider", translation[["logvalue_q"]][[lg]],
                                         min = 0, max = 7, value = 5, step = 1)
                           ),
+                          
                           conditionalPanel(
                             condition = "!input.logscale",
                             sliderInput("cases.y",
-                                        "Value:",
+                                        translation[["value_q"]][[lg]],
                                         min = 1,
                                         max = 200*10^3,
                                         value = 30*10^3),
                             
                             sliderInput("cases.y.fine",
-                                        "Fine Tune:",
+                                        translation[["fine_q"]][[lg]],
                                         min = 69*10^3,
                                         max = 71*10^3,
                                         value = 70*10^3))
                    ),
                    column(3, offset = 0,
-                          
-                          radioButtons("style", "Chart Style",
-                                       choices = list("Single Chart (Colors)" = 1, "One Chart per Country (Blue)" = 2),selected = 1),
-                          selectInput("est.ctrl", "Trend Line",
-                                      choices = c("None", "3", "4", "7", "15"),
-                                      selected = "None"
+                          radioButtons("style", translation[["style_q"]][[lg]],
+                                       choices = choices_style),
+                          selectInput("est.ctrl",translation[["trend_line"]][[lg]] ,
+                                      choices = c(translation[["none"]][[lg]], "3", "4", "7", "15"),
+                                      selected = translation[["none"]][[lg]]
                           ),
-                          selectInput("high.ctrl", "Highlight Country/Region",
-                                      choices = c("None",countryList),
+                          selectInput("high.ctrl",translation[["high_q"]][[lg]]  ,
+                                      choices = c(translation[["none"]][[lg]] ,countryList),
                                       selected = "BRA:Brasil"
                           ),
                           htmlOutput("doublingTime"),
                           br(),
                           checkboxGroupInput("mark.ctrl", 
-                                             "Marker/Line Options", choices = c("Marker", "Line", "Line Style" , "Color", "Background Lines"),selected = c("Line", "Color"),
+                                             translation[["marker_q"]][[lg]], 
+                                             choices = c(translation[["marker"]][[lg]], translation[["line"]][[lg]], 
+                                                         translation[["line_style"]][[lg]], translation[["color"]][[lg]], 
+                                                         translation[["background_lines"]][[lg]]),
+                                             selected = c(translation[["line"]][[lg]], translation[["color"]][[lg]]),
                                              inline = TRUE)
                           
                           
@@ -153,26 +184,26 @@ ui <- fluidPage( theme = "united.min.css",
                    column(6,
                           
                           
-                          checkboxGroupInput("CR.ctrl", label = h3("Selected Country/Regions"), inline = TRUE,
+                          checkboxGroupInput("CR.ctrl", label = h3(translation[["selected_q"]][[lg]]), inline = TRUE,
                                              choices = countryList,
                                              selected = countryList),
                           hr(),
-                          h5("Select Countries or Regions below to add them above:"),
-                          selectInput("countries.ctrl.sel", label = h3("Countries"), 
+                          h5(translation[["add_below_q"]][[lg]]),
+                          selectInput("countries.ctrl.sel", label = h3(translation[["countries"]][[lg]]), 
                                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.C"])), 
                                       selected = " ", multiple = TRUE),
                           
-                          selectInput("brauf.ctrl.sel", label = h3("Brazil: States"), 
+                          selectInput("brauf.ctrl.sel", label = h3(translation[["bra_uf"]][[lg]]), 
                                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "BRA.UF"])), 
                                       selected = " ", multiple = TRUE),
                           
-                          selectInput("bract.ctrl.sel", label = h3("Brazil: Cities"), 
+                          selectInput("bract.ctrl.sel", label = h3(translation[["bra_ct"]][[lg]]), 
                                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "IO.CT"])), 
                                       selected = " ", multiple = TRUE),
-                          selectInput("regions.ctrl.sel", label = h3("World Provinces/States"), 
+                          selectInput("regions.ctrl.sel", label = h3(translation[["wd_prov"]][[lg]]), 
                                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.R"])), 
                                       selected = " ", multiple = TRUE),
-                          selectInput("us50.ctrl.sel", label = h3("US: States"), 
+                          selectInput("us50.ctrl.sel", label = h3(translation[["us_states"]][[lg]]), 
                                       choices = c(" ",as.character(countryChoices$Country.Region[countryChoices$Group %in% "JHU.US"])), 
                                       selected = " ", multiple = TRUE),
                           
@@ -182,35 +213,35 @@ ui <- fluidPage( theme = "united.min.css",
                  fluidRow( 
                    hr(),
                    
-                   h4("Chart developed by:"),
+                   h4(translation[["by"]][[lg]]),
                    tags$a(id = "about"),
                    tags$a(href="https://twitter.com/robertodepinho", "@robertodepinho"),
                    br(),
-                   p("Last updated:", timeStamp),
+                   p(translation[["last"]][[lg]], timeStamp),
                    br(),
-                   h4("This visualization is being generously hosted by:"),
+                   h4(translation[["host"]][[lg]]),
                    tags$a(href="http://nbcgib.uesc.br/nbcgib/",
                           "NBCGIB/CCAM/PPGMC/UESC"),
                    p("Núcleo de Biologia Computacional e Gestão de Informações Biotecnológicas,"),
                    p("Centro de Computação Avançada e Modelagem, "),
                    p("Programa de Pós-Graduação em Modelagem Computacional em Ciência e Tecnologia "),
                    h5("Universidade Estadual de Santa Cruz "),
-                   h5("Bahia, Brazil."),
+                   h5("Bahia, Brasil."),
                    tags$a(href='http://nbcgib.uesc.br/ppgmc/',
                           tags$img(src='http://nbcgib.uesc.br/ppgmc/imagens/logotopo.png',height='80')),
                    br(),
-                   h4("Data Sources"),
-                   h5("Countries:"),
+                   h4(translation[["data_sources"]][[lg]]),
+                   h5(translation[["countries"]][[lg]]),
                    tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data", 
                           "CSSE COVID-19 Dataset - Johns Hopkins University"),
-                   h5("Brazilian States data:"),
+                   h5(translation[["bra_uf"]][[lg]]),
                    
                    tags$a(href="https://brasil.io/", 
                           "Brasil.io"),
                    #tags$a(href="https://covid.saude.gov.br/", 
                    #        "Ministério da Saúde (Brasil)"),
                    
-                   h5("Brazilian Cities data:"),
+                   h5(translation[["bra_ct"]][[lg]]),
                    tags$a(href="https://brasil.io/", 
                           "Brasil.io"),
                    br(),
@@ -219,7 +250,7 @@ ui <- fluidPage( theme = "united.min.css",
                    #tags$a(href="https://github.com/covid19br/covid19br.github.io", 
                    #      "Observatório COVID-19 BR"),
                    #p("Showing median of last 15 days and median of their confidence intervals (level=0.95)."),
-                   h4("Source:"),
+                   h4(translation[["source"]][[lg]]),
                    tags$a(href="https://github.com/robertodepinho/vizCovidDashboard", 
                           "github"),
                    
@@ -232,8 +263,8 @@ ui <- fluidPage( theme = "united.min.css",
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-
-
+  
+  
   output$covidPlot <- renderPlot({
     
     toListen <- reactive({
@@ -248,8 +279,8 @@ server <- function(input, output, session) {
       if(!identical(session$userData$antGroup, changeGroup)) {
         session$userData$antGroup = changeGroup
         updateCheckboxGroupInput(session, "CR.ctrl", choices = TTTGroup, selected = TTTGroup, inline = TRUE)
-        if(input$high.ctrl %in% TTTGroup) { highSel = input$high.ctrl} else { highSel = "None"}
-        updateSelectInput(session, "high.ctrl", choices = c("None", TTTGroup), selected = highSel)      
+        if(input$high.ctrl %in% TTTGroup) { highSel = input$high.ctrl} else { highSel = translation[["none"]][[lg]]}
+        updateSelectInput(session, "high.ctrl", choices = c(translation[["none"]][[lg]], TTTGroup), selected = highSel)      
       }
       return()
     } )
@@ -282,11 +313,11 @@ server <- function(input, output, session) {
     }
     
     doublingTime = 7
-    if(input$high.ctrl != "None" & input$est.ctrl != "EST:Doubling Time (median)") {
+    if(input$high.ctrl != translation[["none"]][[lg]] & input$est.ctrl != "EST:Doubling Time (median)") {
       doublingTime = as.numeric(input$est.ctrl)
     } 
     
-    if(input$high.ctrl != "None"  & input$est.ctrl == "EST:Doubling Time (median)") {
+    if(input$high.ctrl != translation[["none"]][[lg]]  & input$est.ctrl == "EST:Doubling Time (median)") {
       gDT = tail(getDoublingTime(input$high.ctrl, tsCAgg, input$var_ctrl),15)
       doublingTime = median(gDT$estimativa, na.rm=T)
       
@@ -306,17 +337,19 @@ server <- function(input, output, session) {
     
     anchorCases = input$anchor
     
-    if(input$date_ctrl == "Yes") {
+    if(input$date_ctrl == translation[["Yes"]][[lg]]) {
       anchorCases = 0
     }
     
     #prepare data
-    listP = chartDataPrepare(input$var_ctrl,tsCAgg, anchorCases, input$days, casesValue, input$logscale, countryList, backgroundList)
+    listP = chartDataPrepare(input$var_ctrl,tsCAgg, anchorCases, input$days, 
+                             casesValue, input$logscale, countryList, 
+                             backgroundList, lg, translation)
     
     if(!listP[[1]]) {
       g = ggplot(data.frame(x =c(0,100), y = c(0,100)), aes(x= x, y= y)) + 
         geom_point() +
-        annotate("text", label = "No data points to show, please change parameters.", x = 50, y = 50)
+        annotate("text", label = translation[["no_data"]][[lg]], x = 50, y = 50)
       g
       return(g)
     }
@@ -343,12 +376,14 @@ server <- function(input, output, session) {
       
       if(anchorCases!=0){
         covidColor(input$var_ctrl,tsCAgg,listP, anchorCases, 
-                   input$days, casesValue, input$logscale, countryList, input$mark.ctrl, input$high.ctrl, doublingTime, input$est.ctrl, backgroundList)
+                   input$days, casesValue, input$logscale, countryList, 
+                   input$mark.ctrl, input$high.ctrl, doublingTime, 
+                   input$est.ctrl, backgroundList, lg, translation)
       } else {
         covidColorDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
                        input$days, casesValue, input$logscale, countryList, 
                        input$mark.ctrl, input$high.ctrl, doublingTime, 
-                       input$est.ctrl, input$date_range, backgroundList)
+                       input$est.ctrl, input$date_range, backgroundList, lg, translation)
         
         
       }
@@ -356,11 +391,11 @@ server <- function(input, output, session) {
     } else {
       if(anchorCases!=0){
         covidBlue(input$var_ctrl,tsCAgg,listP, anchorCases, 
-                  input$days, casesValue, input$logscale, countryList)
+                  input$days, casesValue, input$logscale, countryList, lg, translation)
       } else {
         covidBlueDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
                       input$days, casesValue, input$logscale, countryList,
-                      input$date_range)
+                      input$date_range, lg, translation)
       }
     }
     

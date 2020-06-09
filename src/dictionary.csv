@@ -1,0 +1,49 @@
+key,en,pt
+title,"vizCovid Dashboard:  Confirmed Cases, Deaths, Recovered","Painel vizCovid:  Casos Confirmados, Mortes etc"
+about,about,sobre
+Variable,Variable,Variável
+Yes,Yes,Sim
+No,No,Não
+anchor_q,Number of occurences to set day 0 at:,Número para determinar o dia 0:
+days_q,Days:,Dias:
+date_range_q,Dates:,Datas:
+logscale_q,Log (Value),Log (Valor)
+logvalue_q,Value (log):,Valor (log):
+value_q,Value:,Valor:
+fine_q,Fine Tune:,Ajuste Fino:
+style_q,Chart Style,Estilo do gráfico
+single_chart,Single Chart,Gráfico único
+grid_charts,One Chart per Region,Um quadro por região
+trend_line,Trend Line,Linha de Tendência
+none,None,Nenhum
+high_q,Highlight Country/Region,Destaque
+marker_q,Marker/Line Options,Opções de linha e marcador
+selected_q,Selected Country/Regions,Países e Regiões selecionadas
+add_below_q,Select Countries or Regions below to add them above:,Selecione países e regiões abaixo para adicioná-los acima
+countries,Countries,Países
+bra_uf,Brazil: States,Brasil: Unidades da Federação
+bra_ct,Brazil: Cities,Brasil: Cidades
+wd_prov,World Provinces/States,Mundo: Províncias e Estados
+us_states,US: States,EUA: Estados
+by,Chart developed by:,Painel desenvolvido por:
+last,Last updated:,Última atualização:
+host,This visualization is being generously hosted by:,Este painel é generosamente hospedado por:
+data_sources,Data Sources,Fontes de Dados
+source,Source Code,Código Fonte
+no_data,"No data points to show, please change parameters.",Sem dados a exibir. Mude os parâmetros
+days_from,Days from first day with,Dias a partir do primeiro com 
+or_more, or more ,ou mais 
+color,Color,Cor
+line_style,Line Style,Estilo da linha
+background_lines,Background Lines,Linhas de fundo
+marker,Marker,Marcador
+line,Line,Linha
+use_date_q,Use actual date?,Usar data?
+Confirmed,Confirmed,Casos confirmados
+Deaths,Deaths,Mortes
+Recovered,Recovered,Recuperados
+Active,Active,Ativos
+NewCases,New Cases,Novos Casos
+NewDeaths,New Deaths,Mortes diárias
+NewCasesAvg,New Cases Avg,Novos Casos (média móvel)
+NewDeathsAvg,New Deaths Avg,Mortes diárias (média móvel)

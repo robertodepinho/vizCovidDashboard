@@ -32,7 +32,7 @@ tsCAgg = prepareData()
 tsCAgg = prepareDataJHU.Regions(tsCAgg)
 tsCAgg = prepareData.US(tsCAgg)
 tsCAgg = preparaBrasil.io(tsCAgg)
-tsCAgg = prepareBraBrasil(tsCAgg)
+#tsCAgg = prepareBraBrasil(tsCAgg)
 #tsCAgg = preparaMSCSV(tsCAgg, fileName.csv)
 
 tsCAgg = newCasesDeaths()
@@ -48,18 +48,19 @@ tail(tsCAgg[tsCAgg$Country.Region %in% "Brazil", ])
 save(tsCAgg, timeStamp, file= "tsCAgg.RData")
 
 
-#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 load("./../../twt.Rdata.RData")
 library(RCurl)
 ftpUpload(what = "tsCAgg.RData",to = paste(sftURL,"tsCAgg.RData", sep=""))
-#ftpUpload(what = "app.R",to = paste(sftURL,"app.R", sep=""))
-#ftpUpload(what = "src/chart.R",to = paste(sftURL,"src/chart.R", sep=""))
-#ftpUpload(what = "src/theme_black.R",to = paste(sftURL,"src/theme_black.R", sep=""))
+ftpUpload(what = "tsCAgg.RData",to = paste(sftURL,"../dashboardEN/tsCAgg.RData", sep=""))
 writeLines(timeStamp, "restart.txt")
 ftpUpload(what = "restart.txt",to = paste(sftURL,"restart.txt", sep=""))  
+ftpUpload(what = "restart.txt",to = paste(sftURL,"../dashboardEN/restart.txt", sep=""))  
 
 
-  #source("corona_tweet.R")
+#ftpUpload(what = "app.R",to = paste(sftURL,"../dashboardEN/app.R", sep=""))
+#ftpUpload(what = "src/chart.R",to = paste(sftURL,"src/chart.R", sep=""))
+#ftpUpload(what = "src/theme_black.R",to = paste(sftURL,"src/theme_black.R", sep=""))
+
 
 ########################3
 # https://t.co/RNZkEFJDT5?amp=1
