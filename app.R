@@ -57,7 +57,7 @@ getCountryChoices <- function(tsCAgg) {
 
 ########################################## SETUP ###########################################
 
-load("lg.bin")
+lg = readLines("lg.txt")[1]
 
 load("tsCAgg.RData")
 load("upd/translation.bin")
@@ -395,7 +395,7 @@ server <- function(input, output, session) {
       } else {
         covidBlueDate(input$var_ctrl,tsCAgg,listP, anchorCases, 
                       input$days, casesValue, input$logscale, countryList,
-                      input$date_range, lg, translation)
+                      input$date_range, lg = lg, translation = translation)
       }
     }
     

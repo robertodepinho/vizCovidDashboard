@@ -1,6 +1,57 @@
+
 source("src/theme_black.R")
 
 winNearAction <- function(tsCAgg, CountryRegion = NA) {
+  tsCAgg = tsCAgg[order(tsCAgg$Date),]
+  
+  if(is.na(CountryRegion)) {
+    dfr = tsCAgg  } else { 
+    dfr = subset(tsCAgg, Country.Region %in% CountryRegion)
+  }
+  
+  dfr = subset(dfr, !is.na(NewCasesAvg))
+  
+  lastc = aggregate(NewCasesAvg ~Country.Region, dfr, tail, 1)
+  maxc = aggregate(NewCasesAvg ~Country.Region, dfr, max, na.rm=T)
+  dfa = merge(lastc, maxc, by = "Country.Region", all = F)
+  colnames(dfa)[colnames(dfa)=="NewCasesAvg.x"] = "last_c"
+  colnames(dfa)[colnames(dfa)=="NewCasesAvg.y"] = "max_c"
+  
+  dfa$per = dfa$last_c / dfa$max_c * 100
+  
+  trend <- function(dfr) {
+    m = lm(NewCasesAvg ~ Date, tail(dfr,15))
+    m$coefficients[2]
+  }
+  
+  library(dplyr)
+  dft = dfr %>% 
+    group_by(Country.Region) %>%
+    do(data.frame(coef=trend(.)))
+  
+  dfa = merge(dfa, dft, by = "Country.Region", all = F)
+  dfa$fall = dfa$coef < 0 
+  dfa$days = ifelse(dfa$fall, - dfa$last_c / dfa$coef, +Inf)
+  
+  
+  ################
+  winners = as.character(subset(dfa, last_c < 22)$Country.Region)
+  dfa$status[dfa$Country.Region %in% winners] = "win" 
+  almost = as.character(subset(dfa, !(status %in% "win") & per < 21)$Country.Region)
+  dfa$status[dfa$Country.Region %in% almost] = "near"
+  dfa$status[ is.na(dfa$status)] = "action"
+  # winners = as.character(subset(dfa, last_c <= 18 & per < 50)$Country.Region)
+  # dfa$status[dfa$Country.Region %in% winners] = "win" 
+  # almost = as.character(subset(dfa, !(status %in% "win") & (fall | per < 25) & days < 30 & per < 50)$Country.Region)
+  # dfa$status[dfa$Country.Region %in% almost] = "near"
+  # dfa$status[ is.na(dfa$status)] = "action"
+  
+  return(dfa)
+  
+}
+
+
+winNearAction_deprecated <- function(tsCAgg, CountryRegion = NA) {
   tsCAgg = tsCAgg[order(tsCAgg$Date),]
   
   if(is.na(CountryRegion)) {
@@ -259,7 +310,8 @@ covidBlueDate <- function(selVar, tsCAgg,listP, anchorCases,days, cases.y,
   covidBluePlot =  covidBluePlot + labs(tag = "@robertodepinho") + 
     theme(plot.tag.position = c(.8, .05), plot.tag = element_text(color="gray50", size=8))
   
-  covidBluePlot = covidBluePlot  + scale_x_date(date_breaks = "1 month", date_labels = "%b", limits = date_range)
+  covidBluePlot = covidBluePlot  + scale_x_date(name="",
+                                                date_breaks = "1 month", date_labels = "%b", limits = date_range)
   
   
   
@@ -437,6 +489,7 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days,
     geom_text_repel(data = labelSubset, aes(label = Country.Region)) 
   covidColorPlot = covidColorPlot  + scale_color_discrete() 
   covidColorPlot = covidColorPlot  + scale_y
+  covidColorPlot = covidColorPlot  + xlab("")
   covidColorPlot = covidColorPlot  +  theme_jf() 
   
   covidColorPlot = covidColorPlot  + theme(legend.position =  "top", legend.title =  element_blank()) 
@@ -450,7 +503,8 @@ covidColorDate <- function(selVar,tsCAgg,listP, anchorCases,days,
   
   
   
-  covidColorPlot = covidColorPlot  + scale_x_date(date_breaks = "1 week", date_labels = "%d %b", limits = date_range)
+  covidColorPlot = covidColorPlot  + scale_x_date(name="",
+                                                  date_breaks = "1 week", date_labels = "%d %b", limits = date_range)
   
   return(covidColorPlot)
   

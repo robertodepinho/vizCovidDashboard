@@ -1,6 +1,7 @@
 key,en,pt
 title,"vizCovid Dashboard:  Confirmed Cases, Deaths, Recovered","Painel vizCovid:  Casos Confirmados, Mortes etc"
 about,about,sobre
+date,date,data
 Variable,Variable,Variável
 Yes,Yes,Sim
 No,No,Não

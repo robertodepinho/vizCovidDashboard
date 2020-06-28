@@ -4,6 +4,7 @@
 .Ruserdata
 .httr-oauth
 google-analytics.html
+gis/
 upd/csv_how
 upd/png_how
 upd/time_series_19-covid-Confirmed_last.csv

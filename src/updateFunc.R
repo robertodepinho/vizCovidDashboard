@@ -57,6 +57,69 @@ downloadBrasil.io <- function() {
   
 }
 
+prepara_delta_ufs <- function(tsCAgg) {
+  states = data.frame(structure(list(state = c("AC", "AL", "AP", "AM", "BA", "CE", 
+                                               "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", 
+                                               "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"), 
+                                     capital = c("Rio Branco", "Maceió", "Macapá", "Manaus", 
+                                                 "Salvador", "Fortaleza", "Brasília", "Vitória", "Goiânia", 
+                                                 "São Luís", "Cuiabá", "Campo Grande", "Belo Horizonte", 
+                                                 "Belém", "João Pessoa", "Curitiba", "Recife", "Teresina", 
+                                                 "Rio de Janeiro", "Natal", "Porto Alegre", "Porto Velho", 
+                                                 "Boa Vista", "Florianópolis", "São Paulo", "Aracaju", "Palmas"
+                                     )), class = "data.frame", row.names = c(NA, -27L)))
+  new_data = data.frame()
+  for(i in 1:27){
+    country_region_a = paste("BRA:", states$state[i], sep="")
+    country_region_b = paste("CT-", states$state[i], ":", states$capital[i], sep="")
+    new_name = paste(country_region_a,"_sem_cap", sep ="")
+    delta_uf = delta_regions(subset(tsCAgg, Date < Sys.Date()), 
+                             country_region_a, country_region_b, 
+                             new_name, group = "DELTA")
+    new_data = rbind(new_data, delta_uf)
+  }
+  
+  #opção agregado estados
+  x = aggregate(cbind(Confirmed, Deaths) ~ Date , new_data,sum, na.rm=T)
+  x = within(x, {
+  Country.Region = "BRA:Brasil_sem_cap"
+  Recovered = NA
+  Active = NA
+  Group = "DELTA" })
+  
+  x = x[, colnames(tsCAgg)]
+  tsCAgg = rbind(tsCAgg, x)
+  
+  
+  tsCAgg = rbind(tsCAgg, new_data)
+  
+  return(tsCAgg)
+  
+}
+
+delta_regions <- function(tsCAgg, country_region_a, country_region_b, new_name = NA, group = "DELTA") {
+  cr_a = subset(tsCAgg,Country.Region %in% country_region_a)
+  cr_b = subset(tsCAgg,Country.Region %in% country_region_b)
+  
+  a_b = merge(cr_a,cr_b, by = "Date", all = T)
+  
+  new_name = ifelse(is.na(new_name), paste("D_", country_region_a, sep=""), new_name)
+  
+  a_b = within(a_b, {
+         Country.Region = new_name
+         Confirmed = Confirmed.x -Confirmed.y
+         Deaths = Deaths.x -Deaths.y
+         Recovered = Recovered.x -Recovered.y
+         Active = Active.x -Active.y
+         Group = group }
+        )
+  a_b = a_b[,colnames(cr_a)]
+  
+  return(a_b)  
+  
+  
+  
+}
 
 get_last_date_brasilIo <- function(per = 80) {
   library(httr); library(jsonlite)
@@ -64,7 +127,7 @@ get_last_date_brasilIo <- function(per = 80) {
   
   request <- GET(source_url, query = list(
     is_last  = "True",
-    place_type = "state"))
+    place_type = "state"), timeout(5))
   response <- content(request, as = "text", encoding = "UTF-8")
   response_list = fromJSON(response, flatten = TRUE) 
   results = response_list[["results"]]
@@ -91,11 +154,12 @@ preparaBrasil.io <- function(tsCAgg){
   df = read.csv(zz)
   close(zz)
   
+  #df = read.csv("https://brasil.io/dataset/covid19/caso_full?format=csv")
   
   UFData = df[ df$place_type %in% "state",]
   
   #opção agregado estados
-  x = aggregate(cbind(last_available_confirmed, last_available_deaths) ~ date , df,sum, na.rm=T)
+  x = aggregate(cbind(last_available_confirmed, last_available_deaths) ~ date , UFData,sum, na.rm=T)
   x$Date = as.Date(as.character(x$date)) 
   x$Country.Region = x$state
   x$Confirmed = x$last_available_confirmed
@@ -224,6 +288,7 @@ prepareData.US <- function(tsCAggPar) {
   
 }
 
+
 prepareDataJHU.Regions <- function(tsCAgg) {
   
   tsConfirmed = read.csv("upd/time_series_19-covid-Confirmed_last.csv")
@@ -272,7 +337,7 @@ prepareDataJHU.Regions <- function(tsCAgg) {
   
 }
 
-newCasesDeaths <- function() {
+newCasesDeaths <- function(tsCAgg) {
   
   
   
